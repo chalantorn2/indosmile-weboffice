@@ -1,0 +1,25 @@
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Koulen&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #010048;
+  --color-yellow: #ffd447;
+  --color-light-gray: #f7f7f7;
+
+  --font-heading: "Koulen", sans-serif;
+  --font-body: "Be Vietnam Pro", sans-serif;
+}
+
+/* Global cursor pointer for interactive elements */
+button,
+a[href],
+a[role="button"],
+[role="button"],
+[onclick],
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+select,
+label[for] {
+  cursor: pointer;
+}

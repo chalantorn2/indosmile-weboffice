@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Indo Smile South Services</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="../../public/Final Logo.ico">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <img src="../../public/Final Logo.png" alt="Logo" class="login-logo">
+            <h1>Admin Login</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username or Email</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div id="loginError" class="error-message"></div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="../../public/Final Logo.png" alt="Logo">
+                <h2>Admin Panel</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-page="overview">
+                    <span class="icon">📊</span>
+                    Overview
+                </a>
+                <a href="#" class="nav-item" data-page="tours">
+                    <span class="icon">🗺️</span>
+                    Tours
+                </a>
+                <a href="#" class="nav-item" data-page="bookings">
+                    <span class="icon">📋</span>
+                    Bookings
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <span class="icon">⚙️</span>
+                    Settings
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="admin-info">
+                    <div class="admin-name" id="adminName">Admin User</div>
+                    <div class="admin-role" id="adminRole">Administrator</div>
+                </div>
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h1 id="pageTitle">Dashboard Overview</h1>
+                <div class="header-actions">
+                    <span class="date" id="currentDate"></span>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content">
+                <!-- Overview Page -->
+                <div id="overviewPage" class="page active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">📋</div>
+                            <div class="stat-info">
+                                <h3 id="totalBookings">0</h3>
+                                <p>Total Bookings</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⏳</div>
+                            <div class="stat-info">
+                                <h3 id="pendingBookings">0</h3>
+                                <p>Pending Bookings</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-info">
+                                <h3 id="confirmedBookings">0</h3>
+                                <p>Confirmed Bookings</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">💰</div>
+                            <div class="stat-info">
+                                <h3 id="totalRevenue">0 THB</h3>
+                                <p>Total Revenue</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recent-section">
+                        <h2>Recent Bookings</h2>
+                        <div id="recentBookings" class="table-container">
+                            <p class="loading">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tours Page -->
+                <div id="toursPage" class="page">
+                    <div class="page-header">
+                        <button id="addTourBtn" class="btn btn-primary">+ Add New Tour</button>
+                    </div>
+                    <div id="toursTable" class="table-container">
+                        <p class="loading">Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Bookings Page -->
+                <div id="bookingsPage" class="page">
+                    <div class="page-header">
+                        <div class="filter-group">
+                            <select id="statusFilter">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <input type="text" id="searchBookings" placeholder="Search bookings...">
+                        </div>
+                    </div>
+                    <div id="bookingsTable" class="table-container">
+                        <p class="loading">Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settingsPage" class="page">
+                    <h2>Settings</h2>
+                    <p>Settings page coming soon...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Tour Modal -->
+    <div id="tourModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Tour</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="tourForm">
+                    <input type="hidden" id="tourId">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tourName">Tour Name *</label>
+                            <input type="text" id="tourName" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tourDestination">Destination *</label>
+                            <input type="text" id="tourDestination" name="destination" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tourType">Type *</label>
+                            <select id="tourType" name="type" required>
+                                <option value="inbound">Inbound</option>
+                                <option value="outbound">Outbound</option>
+                                <option value="incentive">Incentive</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="tourPrice">Price (THB) *</label>
+                            <input type="number" id="tourPrice" name="price" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tourDurationDays">Duration (Days) *</label>
+                            <input type="number" id="tourDurationDays" name="duration_days" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tourDurationNights">Duration (Nights) *</label>
+                            <input type="number" id="tourDurationNights" name="duration_nights" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tourDescription">Description *</label>
+                        <textarea id="tourDescription" name="description" rows="4" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tourShortDescription">Short Description</label>
+                        <input type="text" id="tourShortDescription" name="short_description">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tourMainImage">Main Image URL</label>
+                        <input type="url" id="tourMainImage" name="main_image" placeholder="https://...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tourHighlights">Highlights (one per line)</label>
+                        <textarea id="tourHighlights" name="highlights" rows="3" placeholder="Phi Phi Islands&#10;Snorkeling&#10;Beach BBQ"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tourIncluded">Included (one per line)</label>
+                        <textarea id="tourIncluded" name="included" rows="3" placeholder="Hotel accommodation&#10;All meals&#10;Transportation"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tourNotIncluded">Not Included (one per line)</label>
+                        <textarea id="tourNotIncluded" name="not_included" rows="3" placeholder="International flights&#10;Personal expenses"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="tourFeatured" name="is_featured">
+                                Featured Tour
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="tourActive" name="is_active" checked>
+                                Active
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Tour</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
