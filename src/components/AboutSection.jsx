@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function AboutSection() {
   return (
     <section id="about" className="py-20 bg-light-gray">
@@ -40,9 +42,9 @@ export default function AboutSection() {
               </p>
             </div>
 
-            <a
-              href="#contact"
-              className="inline-block mt-8 text-yellow font-semibold hover:text-navy transition-colors duration-200 font-body"
+            <Link
+              to="/about"
+              className="inline-flex items-center mt-8 text-yellow font-semibold hover:text-navy transition-colors duration-200 font-body"
             >
               Learn More About Us
               <svg
@@ -58,7 +60,7 @@ export default function AboutSection() {
                   d="M9 5l7 7-7 7"
                 />
               </svg>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

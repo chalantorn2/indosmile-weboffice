@@ -1,12 +1,23 @@
 @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Koulen&display=swap");
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'AmpersandFont';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  /* Use Be Vietnam Pro (400 weight) explicit URL loaded from Google Fonts for cross-platform support */
+  src: local('Be Vietnam Pro'), url(https://fonts.gstatic.com/s/bevietnampro/v12/QdVPSTAyLFyeg_IDWvOJmVES_Eww.ttf) format('truetype');
+  /* U+0026 is the Ampersand (&) character */
+  unicode-range: U+0026;
+}
+
 @theme {
   --color-navy: #010048;
   --color-yellow: #ffd447;
   --color-light-gray: #f7f7f7;
 
-  --font-heading: "Koulen", sans-serif;
+  --font-heading: "AmpersandFont", "Koulen", sans-serif;
   --font-body: "Be Vietnam Pro", sans-serif;
 }
 
@@ -22,4 +33,123 @@ input[type="reset"],
 select,
 label[for] {
   cursor: pointer;
+}
+
+/* ============================== */
+/* react-datepicker Navy Theme    */
+/* ============================== */
+.datepicker-navy .react-datepicker-popper {
+  z-index: 50 !important;
+}
+
+.datepicker-navy .react-datepicker-wrapper,
+.datepicker-navy .react-datepicker__input-container {
+  width: 100%;
+  display: block;
+}
+
+.navy-calendar.react-datepicker {
+  font-family: "Be Vietnam Pro", sans-serif;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.navy-calendar .react-datepicker__header {
+  background: #010048;
+  border-bottom: none;
+  padding: 10px 8px 6px;
+}
+
+.navy-calendar .react-datepicker__current-month {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.navy-calendar .react-datepicker__day-names {
+  display: flex;
+  justify-content: space-around;
+}
+
+.navy-calendar .react-datepicker__day-name {
+  color: rgba(255,255,255,0.5);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  width: 2rem;
+  margin: 0;
+}
+
+.navy-calendar .react-datepicker__month {
+  margin: 4px 6px 6px;
+}
+
+.navy-calendar .react-datepicker__week {
+  display: flex;
+  justify-content: space-around;
+}
+
+.navy-calendar .react-datepicker__day {
+  width: 2rem;
+  height: 2rem;
+  line-height: 2rem;
+  margin: 1px 0;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: #010048;
+  transition: all 0.15s ease;
+}
+
+.navy-calendar .react-datepicker__day:hover {
+  background: rgba(255, 212, 71, 0.2);
+  border-radius: 8px;
+}
+
+.navy-calendar .react-datepicker__day--selected,
+.navy-calendar .react-datepicker__day--keyboard-selected {
+  background: #ffd447 !important;
+  color: #010048 !important;
+  font-weight: 700;
+  border-radius: 8px;
+}
+
+.navy-calendar .react-datepicker__day--today {
+  font-weight: 700;
+  background: rgba(1, 0, 72, 0.08);
+  border-radius: 8px;
+}
+
+.navy-calendar .react-datepicker__day--today.react-datepicker__day--selected {
+  background: #ffd447 !important;
+}
+
+.navy-calendar .react-datepicker__day--outside-month {
+  color: #d1d5db;
+}
+
+.navy-calendar .react-datepicker__day--disabled {
+  color: #d1d5db !important;
+  cursor: not-allowed;
+}
+
+.navy-calendar .react-datepicker__day--disabled:hover {
+  background: transparent;
+}
+
+.navy-calendar .react-datepicker__navigation {
+  top: 8px;
+}
+
+.navy-calendar .react-datepicker__navigation-icon::before {
+  border-color: rgba(255,255,255,0.6);
+  border-width: 2px 2px 0 0;
+  height: 7px;
+  width: 7px;
+}
+
+.navy-calendar .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+  border-color: #fff;
 }

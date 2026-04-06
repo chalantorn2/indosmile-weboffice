@@ -19,8 +19,8 @@ class Tour {
     public $duration_days;
     public $duration_nights;
     public $duration_label;
-    public $price;
-    public $price_label;
+    public $adult_price;
+    public $child_price;
     public $currency;
     public $rating;
     public $review_count;
@@ -37,6 +37,16 @@ class Tour {
     public $itinerary;
     public $terms_conditions;
     public $cancellation_policy;
+    // One Day Trip specific fields
+    public $pickup_time;
+    public $pickup_location;
+    public $dropoff_time;
+    public $dropoff_location;
+    public $departure_times;
+    public $meal_info;
+    public $transfer_info;
+    public $what_to_bring;
+    public $important_notes;
     public $created_by;
 
     public function __construct($db) {
@@ -76,14 +86,14 @@ class Tour {
             $params[':search'] = '%' . $filters['search'] . '%';
         }
 
-        if (isset($filters['min_price']) && is_numeric($filters['min_price'])) {
-            $query .= " AND price >= :min_price";
-            $params[':min_price'] = $filters['min_price'];
+        if (isset($filters['min_adult_price']) && is_numeric($filters['min_adult_price'])) {
+            $query .= " AND adult_price >= :min_adult_price";
+            $params[':min_adult_price'] = $filters['min_adult_price'];
         }
 
-        if (isset($filters['max_price']) && is_numeric($filters['max_price'])) {
-            $query .= " AND price <= :max_price";
-            $params[':max_price'] = $filters['max_price'];
+        if (isset($filters['max_adult_price']) && is_numeric($filters['max_adult_price'])) {
+            $query .= " AND adult_price <= :max_adult_price";
+            $params[':max_adult_price'] = $filters['max_adult_price'];
         }
 
         if (isset($filters['duration']) && is_numeric($filters['duration'])) {
@@ -95,7 +105,7 @@ class Tour {
         $sortBy = isset($filters['sort_by']) ? $filters['sort_by'] : 'created_at';
         $sortOrder = isset($filters['sort_order']) && strtoupper($filters['sort_order']) === 'ASC' ? 'ASC' : 'DESC';
 
-        $allowedSortFields = ['price', 'rating', 'created_at', 'duration_days', 'name'];
+        $allowedSortFields = ['adult_price', 'rating', 'created_at', 'duration_days', 'name'];
         if (in_array($sortBy, $allowedSortFields)) {
             $query .= " ORDER BY {$sortBy} {$sortOrder}";
         }
@@ -185,18 +195,24 @@ class Tour {
     public function create($data) {
         $query = "INSERT INTO {$this->table} (
             name, slug, destination, type, description, short_description,
-            duration_days, duration_nights, duration_label, price, price_label,
+            duration_days, duration_nights, duration_label, adult_price, child_price,
             currency, rating, review_count, is_featured, is_active,
             max_participants, min_participants, difficulty_level,
             main_image, gallery_images, highlights, included, not_included,
-            itinerary, terms_conditions, cancellation_policy, created_by
+            itinerary, terms_conditions, cancellation_policy,
+            pickup_time, pickup_location, dropoff_time, dropoff_location,
+            departure_times, meal_info, transfer_info, what_to_bring, important_notes,
+            created_by
         ) VALUES (
             :name, :slug, :destination, :type, :description, :short_description,
-            :duration_days, :duration_nights, :duration_label, :price, :price_label,
+            :duration_days, :duration_nights, :duration_label, :adult_price, :child_price,
             :currency, :rating, :review_count, :is_featured, :is_active,
             :max_participants, :min_participants, :difficulty_level,
             :main_image, :gallery_images, :highlights, :included, :not_included,
-            :itinerary, :terms_conditions, :cancellation_policy, :created_by
+            :itinerary, :terms_conditions, :cancellation_policy,
+            :pickup_time, :pickup_location, :dropoff_time, :dropoff_location,
+            :departure_times, :meal_info, :transfer_info, :what_to_bring, :important_notes,
+            :created_by
         )";
 
         $stmt = $this->conn->prepare($query);
@@ -214,8 +230,8 @@ class Tour {
         $stmt->bindParam(':duration_days', $data['duration_days'], PDO::PARAM_INT);
         $stmt->bindParam(':duration_nights', $data['duration_nights'], PDO::PARAM_INT);
         $stmt->bindParam(':duration_label', $data['duration_label']);
-        $stmt->bindParam(':price', $data['price']);
-        $stmt->bindParam(':price_label', $data['price_label']);
+        $stmt->bindParam(':adult_price', $data['adult_price']);
+        $stmt->bindParam(':child_price', $data['child_price']);
         $stmt->bindParam(':currency', $data['currency']);
         $stmt->bindParam(':rating', $data['rating']);
         $stmt->bindParam(':review_count', $data['review_count'], PDO::PARAM_INT);
@@ -232,6 +248,15 @@ class Tour {
         $stmt->bindParam(':itinerary', $data['itinerary']);
         $stmt->bindParam(':terms_conditions', $data['terms_conditions']);
         $stmt->bindParam(':cancellation_policy', $data['cancellation_policy']);
+        $stmt->bindParam(':pickup_time', $data['pickup_time']);
+        $stmt->bindParam(':pickup_location', $data['pickup_location']);
+        $stmt->bindParam(':dropoff_time', $data['dropoff_time']);
+        $stmt->bindParam(':dropoff_location', $data['dropoff_location']);
+        $stmt->bindParam(':departure_times', $data['departure_times']);
+        $stmt->bindParam(':meal_info', $data['meal_info']);
+        $stmt->bindParam(':transfer_info', $data['transfer_info']);
+        $stmt->bindParam(':what_to_bring', $data['what_to_bring']);
+        $stmt->bindParam(':important_notes', $data['important_notes']);
         $stmt->bindParam(':created_by', $data['created_by'], PDO::PARAM_INT);
 
         if ($stmt->execute()) {
@@ -255,8 +280,8 @@ class Tour {
             duration_days = :duration_days,
             duration_nights = :duration_nights,
             duration_label = :duration_label,
-            price = :price,
-            price_label = :price_label,
+            adult_price = :adult_price,
+            child_price = :child_price,
             currency = :currency,
             rating = :rating,
             review_count = :review_count,
@@ -272,7 +297,16 @@ class Tour {
             not_included = :not_included,
             itinerary = :itinerary,
             terms_conditions = :terms_conditions,
-            cancellation_policy = :cancellation_policy
+            cancellation_policy = :cancellation_policy,
+            pickup_time = :pickup_time,
+            pickup_location = :pickup_location,
+            dropoff_time = :dropoff_time,
+            dropoff_location = :dropoff_location,
+            departure_times = :departure_times,
+            meal_info = :meal_info,
+            transfer_info = :transfer_info,
+            what_to_bring = :what_to_bring,
+            important_notes = :important_notes
             WHERE id = :id";
 
         $stmt = $this->conn->prepare($query);
@@ -288,8 +322,8 @@ class Tour {
         $stmt->bindParam(':duration_days', $data['duration_days'], PDO::PARAM_INT);
         $stmt->bindParam(':duration_nights', $data['duration_nights'], PDO::PARAM_INT);
         $stmt->bindParam(':duration_label', $data['duration_label']);
-        $stmt->bindParam(':price', $data['price']);
-        $stmt->bindParam(':price_label', $data['price_label']);
+        $stmt->bindParam(':adult_price', $data['adult_price']);
+        $stmt->bindParam(':child_price', $data['child_price']);
         $stmt->bindParam(':currency', $data['currency']);
         $stmt->bindParam(':rating', $data['rating']);
         $stmt->bindParam(':review_count', $data['review_count'], PDO::PARAM_INT);
@@ -306,6 +340,15 @@ class Tour {
         $stmt->bindParam(':itinerary', $data['itinerary']);
         $stmt->bindParam(':terms_conditions', $data['terms_conditions']);
         $stmt->bindParam(':cancellation_policy', $data['cancellation_policy']);
+        $stmt->bindParam(':pickup_time', $data['pickup_time']);
+        $stmt->bindParam(':pickup_location', $data['pickup_location']);
+        $stmt->bindParam(':dropoff_time', $data['dropoff_time']);
+        $stmt->bindParam(':dropoff_location', $data['dropoff_location']);
+        $stmt->bindParam(':departure_times', $data['departure_times']);
+        $stmt->bindParam(':meal_info', $data['meal_info']);
+        $stmt->bindParam(':transfer_info', $data['transfer_info']);
+        $stmt->bindParam(':what_to_bring', $data['what_to_bring']);
+        $stmt->bindParam(':important_notes', $data['important_notes']);
 
         return $stmt->execute();
     }

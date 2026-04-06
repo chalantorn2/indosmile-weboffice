@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function ServiceCards() {
   const services = [
     {
@@ -8,7 +10,7 @@ export default function ServiceCards() {
       ),
       title: 'Inbound Tours',
       description: 'Expertly curated travel experiences for international visitors exploring the beauty and culture of Southern Thailand.',
-      link: '#inbound',
+      link: '/inbound',
     },
     {
       icon: (
@@ -18,7 +20,7 @@ export default function ServiceCards() {
       ),
       title: 'Outbound Tours',
       description: 'Seamless international travel packages designed for Thai travelers seeking memorable adventures around the world.',
-      link: '#outbound',
+      link: '/contact',
     },
     {
       icon: (
@@ -28,7 +30,7 @@ export default function ServiceCards() {
       ),
       title: 'Land Operations',
       description: 'Comprehensive ground handling services including transportation, accommodation, and logistics management.',
-      link: '#land-operations',
+      link: '/land-operations',
     },
     {
       icon: (
@@ -38,7 +40,7 @@ export default function ServiceCards() {
       ),
       title: 'Ticketing & Incentive Travels',
       description: 'Professional ticketing services and customized incentive travel programs for corporate groups and teams.',
-      link: '#ticketing',
+      link: '/contact',
     },
   ];
 
@@ -76,8 +78,8 @@ export default function ServiceCards() {
               </p>
 
               {/* Learn More Link */}
-              <a
-                href={service.link}
+              <Link
+                to={service.link}
                 className="font-body text-yellow font-semibold hover:text-navy transition-colors duration-200 inline-flex items-center"
               >
                 Learn More
@@ -94,7 +96,7 @@ export default function ServiceCards() {
                     d="M9 5l7 7-7 7"
                   />
                 </svg>
-              </a>
+              </Link>
             </div>
           ))}
         </div>

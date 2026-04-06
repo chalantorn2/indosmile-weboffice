@@ -5,13 +5,19 @@
  */
 
 header('Content-Type: application/json');
-require_once '../../config/config.php';
-require_once '../../config/Database.php';
-require_once '../../models/Tour.php';
+require_once '../config/config.php';
+require_once '../config/Database.php';
+require_once '../models/Tour.php';
 require_once 'helpers.php';
 
 // Handle CORS
 handleCORS();
+
+// Start session (must be before any session-dependent logic)
+if (session_status() === PHP_SESSION_NONE) {
+    session_name(SESSION_NAME);
+    session_start();
+}
 
 // Initialize database connection
 try {
@@ -61,6 +67,8 @@ function handleGetRequest($tourModel) {
             $tour['included'] = json_decode($tour['included'], true);
             $tour['not_included'] = json_decode($tour['not_included'], true);
             $tour['itinerary'] = json_decode($tour['itinerary'], true);
+            $tour['departure_times'] = json_decode($tour['departure_times'], true);
+            $tour['what_to_bring'] = json_decode($tour['what_to_bring'], true);
 
             sendResponse($tour, 200);
         } else {
@@ -77,6 +85,8 @@ function handleGetRequest($tourModel) {
             $tour['included'] = json_decode($tour['included'], true);
             $tour['not_included'] = json_decode($tour['not_included'], true);
             $tour['itinerary'] = json_decode($tour['itinerary'], true);
+            $tour['departure_times'] = json_decode($tour['departure_times'], true);
+            $tour['what_to_bring'] = json_decode($tour['what_to_bring'], true);
 
             sendResponse($tour, 200);
         } else {
@@ -89,10 +99,10 @@ function handleGetRequest($tourModel) {
         'type' => $_GET['type'] ?? null,
         'destination' => $_GET['destination'] ?? null,
         'is_featured' => isset($_GET['featured']) ? (int)$_GET['featured'] : null,
-        'is_active' => isset($_GET['active']) ? (int)$_GET['active'] : 1, // Default: only active tours
+        'is_active' => (isset($_GET['active']) && $_GET['active'] !== '') ? (int)$_GET['active'] : null, // Empty or missing = all tours
         'search' => $_GET['search'] ?? null,
-        'min_price' => $_GET['min_price'] ?? null,
-        'max_price' => $_GET['max_price'] ?? null,
+        'min_adult_price' => $_GET['min_price'] ?? null,
+        'max_adult_price' => $_GET['max_price'] ?? null,
         'duration' => $_GET['duration'] ?? null,
         'sort_by' => $_GET['sort_by'] ?? 'created_at',
         'sort_order' => $_GET['sort_order'] ?? 'DESC'
@@ -114,6 +124,8 @@ function handleGetRequest($tourModel) {
         $tour['included'] = json_decode($tour['included'], true);
         $tour['not_included'] = json_decode($tour['not_included'], true);
         $tour['itinerary'] = json_decode($tour['itinerary'], true);
+        $tour['departure_times'] = json_decode($tour['departure_times'], true);
+        $tour['what_to_bring'] = json_decode($tour['what_to_bring'], true);
     }
 
     // Build paginated response
@@ -137,7 +149,7 @@ function handlePostRequest($tourModel) {
     }
 
     // Validate required fields
-    $requiredFields = ['name', 'destination', 'type', 'description', 'duration_days', 'duration_nights', 'price'];
+    $requiredFields = ['name', 'destination', 'type', 'description', 'duration_days', 'duration_nights', 'adult_price'];
     $missing = validateRequired($input, $requiredFields);
 
     if (!empty($missing)) {
@@ -155,8 +167,8 @@ function handlePostRequest($tourModel) {
         'duration_days' => (int)$input['duration_days'],
         'duration_nights' => (int)$input['duration_nights'],
         'duration_label' => isset($input['duration_label']) ? sanitizeInput($input['duration_label']) : null,
-        'price' => (float)$input['price'],
-        'price_label' => isset($input['price_label']) ? sanitizeInput($input['price_label']) : null,
+        'adult_price' => (float)$input['adult_price'],
+        'child_price' => isset($input['child_price']) ? (float)$input['child_price'] : null,
         'currency' => isset($input['currency']) ? sanitizeInput($input['currency']) : 'THB',
         'rating' => isset($input['rating']) ? (float)$input['rating'] : 0.0,
         'review_count' => isset($input['review_count']) ? (int)$input['review_count'] : 0,
@@ -173,6 +185,15 @@ function handlePostRequest($tourModel) {
         'itinerary' => isset($input['itinerary']) ? json_encode($input['itinerary']) : null,
         'terms_conditions' => isset($input['terms_conditions']) ? $input['terms_conditions'] : null,
         'cancellation_policy' => isset($input['cancellation_policy']) ? $input['cancellation_policy'] : null,
+        'pickup_time' => isset($input['pickup_time']) ? sanitizeInput($input['pickup_time']) : null,
+        'pickup_location' => isset($input['pickup_location']) ? sanitizeInput($input['pickup_location']) : null,
+        'dropoff_time' => isset($input['dropoff_time']) ? sanitizeInput($input['dropoff_time']) : null,
+        'dropoff_location' => isset($input['dropoff_location']) ? sanitizeInput($input['dropoff_location']) : null,
+        'departure_times' => isset($input['departure_times']) ? json_encode($input['departure_times']) : null,
+        'meal_info' => isset($input['meal_info']) ? sanitizeInput($input['meal_info']) : null,
+        'transfer_info' => isset($input['transfer_info']) ? sanitizeInput($input['transfer_info']) : null,
+        'what_to_bring' => isset($input['what_to_bring']) ? json_encode($input['what_to_bring']) : null,
+        'important_notes' => isset($input['important_notes']) ? $input['important_notes'] : null,
         'created_by' => $adminId
     ];
 
@@ -229,8 +250,8 @@ function handlePutRequest($tourModel) {
         'duration_days' => isset($input['duration_days']) ? (int)$input['duration_days'] : $existingTour['duration_days'],
         'duration_nights' => isset($input['duration_nights']) ? (int)$input['duration_nights'] : $existingTour['duration_nights'],
         'duration_label' => isset($input['duration_label']) ? sanitizeInput($input['duration_label']) : $existingTour['duration_label'],
-        'price' => isset($input['price']) ? (float)$input['price'] : $existingTour['price'],
-        'price_label' => isset($input['price_label']) ? sanitizeInput($input['price_label']) : $existingTour['price_label'],
+        'adult_price' => isset($input['adult_price']) ? (float)$input['adult_price'] : $existingTour['adult_price'],
+        'child_price' => isset($input['child_price']) ? (float)$input['child_price'] : $existingTour['child_price'],
         'currency' => isset($input['currency']) ? sanitizeInput($input['currency']) : $existingTour['currency'],
         'rating' => isset($input['rating']) ? (float)$input['rating'] : $existingTour['rating'],
         'review_count' => isset($input['review_count']) ? (int)$input['review_count'] : $existingTour['review_count'],
@@ -246,7 +267,16 @@ function handlePutRequest($tourModel) {
         'not_included' => isset($input['not_included']) ? json_encode($input['not_included']) : $existingTour['not_included'],
         'itinerary' => isset($input['itinerary']) ? json_encode($input['itinerary']) : $existingTour['itinerary'],
         'terms_conditions' => isset($input['terms_conditions']) ? $input['terms_conditions'] : $existingTour['terms_conditions'],
-        'cancellation_policy' => isset($input['cancellation_policy']) ? $input['cancellation_policy'] : $existingTour['cancellation_policy']
+        'cancellation_policy' => isset($input['cancellation_policy']) ? $input['cancellation_policy'] : $existingTour['cancellation_policy'],
+        'pickup_time' => isset($input['pickup_time']) ? sanitizeInput($input['pickup_time']) : $existingTour['pickup_time'],
+        'pickup_location' => isset($input['pickup_location']) ? sanitizeInput($input['pickup_location']) : $existingTour['pickup_location'],
+        'dropoff_time' => isset($input['dropoff_time']) ? sanitizeInput($input['dropoff_time']) : $existingTour['dropoff_time'],
+        'dropoff_location' => isset($input['dropoff_location']) ? sanitizeInput($input['dropoff_location']) : $existingTour['dropoff_location'],
+        'departure_times' => isset($input['departure_times']) ? json_encode($input['departure_times']) : $existingTour['departure_times'],
+        'meal_info' => isset($input['meal_info']) ? sanitizeInput($input['meal_info']) : $existingTour['meal_info'],
+        'transfer_info' => isset($input['transfer_info']) ? sanitizeInput($input['transfer_info']) : $existingTour['transfer_info'],
+        'what_to_bring' => isset($input['what_to_bring']) ? json_encode($input['what_to_bring']) : $existingTour['what_to_bring'],
+        'important_notes' => isset($input['important_notes']) ? $input['important_notes'] : $existingTour['important_notes']
     ];
 
     // Update tour

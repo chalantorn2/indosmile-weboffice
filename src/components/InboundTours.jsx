@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
-const API_BASE = 'https://indosmilesouthservices.com/backend/api/v1';
+const API_BASE = '/backend/api';
 
-export default function InboundTours({ onTourSelect }) {
+export default function InboundTours() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDuration, setSelectedDuration] = useState("all");
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
@@ -27,16 +29,24 @@ export default function InboundTours({ onTourSelect }) {
         const tours = data.data.items.map(tour => ({
           id: tour.id,
           image: tour.main_image || "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=600",
+          images: tour.gallery_images || [],
           name: tour.name,
           destination: tour.destination,
           description: tour.description,
           duration: tour.duration_days,
-          durationLabel: tour.duration_label || `${tour.duration_days} Days / ${tour.duration_nights} Nights`,
-          price: parseFloat(tour.price),
-          priceLabel: tour.price_label || `${parseFloat(tour.price).toLocaleString()} THB`,
+          durationLabel: tour.duration_days == 1 ? 'One Day Trip' : (tour.duration_label || `${tour.duration_days} Days / ${tour.duration_nights} Nights`),
+          adultPrice: parseFloat(tour.adult_price),
+          childPrice: tour.child_price ? parseFloat(tour.child_price) : null,
           rating: parseFloat(tour.rating) || 0,
           reviews: tour.review_count || 0,
           highlights: tour.highlights || [],
+          itinerary: tour.itinerary || [],
+          included: tour.included || [],
+          notIncluded: tour.not_included || [],
+          minParticipants: tour.min_participants || 1,
+          maxParticipants: tour.max_participants || null,
+          cancellationPolicy: tour.cancellation_policy || '',
+          termsConditions: tour.terms_conditions || '',
         }));
         setAllTours(tours);
       } else {
@@ -49,135 +59,6 @@ export default function InboundTours({ onTourSelect }) {
       setLoading(false);
     }
   };
-
-  // Fallback sample tour data (if API fails)
-  const fallbackTours = [
-    {
-      id: 1,
-      image: "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=600",
-      name: "Phuket Island Hopping",
-      destination: "Phuket",
-      description:
-        "3-day adventure exploring Phi Phi Islands, James Bond Island, and pristine beaches with snorkeling.",
-      duration: 3,
-      durationLabel: "3 Days / 2 Nights",
-      price: 15000,
-      priceLabel: "15,000 THB",
-      rating: 4.8,
-      reviews: 124,
-      highlights: ["Phi Phi Islands", "Snorkeling", "Beach BBQ"],
-    },
-    {
-      id: 2,
-      image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600",
-      name: "Krabi Adventure",
-      destination: "Krabi",
-      description:
-        "Experience rock climbing, kayaking, and stunning limestone karsts of Krabi with professional guides.",
-      duration: 4,
-      durationLabel: "4 Days / 3 Nights",
-      price: 18000,
-      priceLabel: "18,000 THB",
-      rating: 4.9,
-      reviews: 89,
-      highlights: ["Rock Climbing", "Kayaking", "Cave Exploration"],
-    },
-    {
-      id: 3,
-      image:
-        "https://images.unsplash.com/photo-1528181304800-259b08848526?w=600",
-      name: "Cultural Phuket Tour",
-      destination: "Phuket",
-      description:
-        "Discover Old Town Phuket, temples, and authentic local cuisine experiences with local expert.",
-      duration: 2,
-      durationLabel: "2 Days / 1 Night",
-      price: 8000,
-      priceLabel: "8,000 THB",
-      rating: 4.7,
-      reviews: 156,
-      highlights: ["Old Town", "Temples", "Street Food"],
-    },
-    {
-      id: 4,
-      image:
-        "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600",
-      name: "Bangkok City Explorer",
-      destination: "Bangkok",
-      description:
-        "Grand Palace, floating markets, and vibrant street life of Thailand capital city.",
-      duration: 3,
-      durationLabel: "3 Days / 2 Nights",
-      price: 12000,
-      priceLabel: "12,000 THB",
-      rating: 4.6,
-      reviews: 203,
-      highlights: ["Grand Palace", "Floating Market", "Night Markets"],
-    },
-    {
-      id: 5,
-      image:
-        "https://images.unsplash.com/photo-1506665531195-91875e08ed0b?w=600",
-      name: "Chiang Mai Highland",
-      destination: "Chiang Mai",
-      description:
-        "Mountain tribes, elephant sanctuary, and traditional handicrafts in Northern Thailand.",
-      duration: 5,
-      durationLabel: "5 Days / 4 Nights",
-      price: 22000,
-      priceLabel: "22,000 THB",
-      rating: 4.9,
-      reviews: 167,
-      highlights: ["Elephant Sanctuary", "Hill Tribes", "Handicrafts"],
-    },
-    {
-      id: 6,
-      image:
-        "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600",
-      name: "Ayutthaya Heritage",
-      destination: "Ayutthaya",
-      description:
-        "Ancient temples and historical ruins of the former Siamese capital on a day trip.",
-      duration: 1,
-      durationLabel: "1 Day",
-      price: 4500,
-      priceLabel: "4,500 THB",
-      rating: 4.5,
-      reviews: 98,
-      highlights: ["Ancient Temples", "UNESCO Site", "River Cruise"],
-    },
-    {
-      id: 7,
-      image:
-        "https://images.unsplash.com/photo-1584646098378-0874589d76b1?w=600",
-      name: "Pattaya Beach Escape",
-      destination: "Pattaya",
-      description:
-        "Beach relaxation, water sports, and vibrant nightlife along the Eastern seaboard.",
-      duration: 3,
-      durationLabel: "3 Days / 2 Nights",
-      price: 9500,
-      priceLabel: "9,500 THB",
-      rating: 4.4,
-      reviews: 142,
-      highlights: ["Water Sports", "Beach Clubs", "Island Tours"],
-    },
-    {
-      id: 8,
-      image: "https://images.unsplash.com/photo-1551244072-5d12893278ab?w=600",
-      name: "Koh Samui Luxury",
-      destination: "Koh Samui",
-      description:
-        "Premium resort experience with spa treatments, fine dining, and private beach access.",
-      duration: 4,
-      durationLabel: "4 Days / 3 Nights",
-      price: 28000,
-      priceLabel: "28,000 THB",
-      rating: 4.9,
-      reviews: 76,
-      highlights: ["Luxury Resort", "Spa & Wellness", "Private Beach"],
-    },
-  ];
 
   // Filter and sort logic
   const filteredAndSortedTours = useMemo(() => {
@@ -214,11 +95,11 @@ export default function InboundTours({ onTourSelect }) {
       filtered = filtered.filter((tour) => {
         switch (selectedPriceRange) {
           case "budget":
-            return tour.price < 10000;
+            return tour.adultPrice < 10000;
           case "mid":
-            return tour.price >= 10000 && tour.price < 20000;
+            return tour.adultPrice >= 10000 && tour.adultPrice < 20000;
           case "luxury":
-            return tour.price >= 20000;
+            return tour.adultPrice >= 20000;
           default:
             return true;
         }
@@ -229,9 +110,9 @@ export default function InboundTours({ onTourSelect }) {
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case "price-low":
-          return a.price - b.price;
+          return a.adultPrice - b.adultPrice;
         case "price-high":
-          return b.price - a.price;
+          return b.adultPrice - a.adultPrice;
         case "rating":
           return b.rating - a.rating;
         case "duration":
@@ -242,7 +123,7 @@ export default function InboundTours({ onTourSelect }) {
     });
 
     return sorted;
-  }, [searchQuery, selectedDuration, selectedPriceRange, sortBy]);
+  }, [allTours, searchQuery, selectedDuration, selectedPriceRange, sortBy]);
 
   return (
     <section className="py-20 bg-light-gray min-h-screen">
@@ -406,7 +287,8 @@ export default function InboundTours({ onTourSelect }) {
             {filteredAndSortedTours.map((tour) => (
               <div
                 key={tour.id}
-                className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group"
+                onClick={() => navigate(`/booking-detail/${tour.id}`)}
+                className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group cursor-pointer"
               >
                 {/* Image */}
                 <div className="relative h-56 bg-gray-300 overflow-hidden">
@@ -473,12 +355,17 @@ export default function InboundTours({ onTourSelect }) {
                   {/* Price & CTA */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <div>
-                      <p className="font-heading text-xl text-navy font-bold">
-                        {tour.priceLabel}
+                      <p className="font-heading text-lg text-navy">
+                        {tour.adultPrice.toLocaleString()} THB
                       </p>
+                      {tour.childPrice && (
+                        <p className="font-body text-sm text-gray-500">
+                          Child: {tour.childPrice.toLocaleString()} THB
+                        </p>
+                      )}
                     </div>
                     <button
-                      onClick={() => onTourSelect(tour)}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/booking-detail/${tour.id}`); }}
                       className="bg-navy text-white px-6 py-3 rounded-lg font-body font-semibold hover:bg-opacity-90 transition-all duration-200"
                     >
                       Book Now

@@ -1,44 +1,32 @@
-import { useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import Home from "./components/Home";
 import InboundTours from "./components/InboundTours";
-import BookingDetail from "./components/BookingDetail";
+import TourDetail from "./components/TourDetail";
+import ContactUs from "./components/ContactUs";
+import Hotels from "./components/Hotels";
+import HotelDetail from "./components/HotelDetail";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import AboutPage from "./components/AboutPage";
+import LandOperationsPage from "./components/LandOperationsPage";
 
 function App() {
-  const [currentPage, setCurrentPage] = useState("home");
-  const [selectedTour, setSelectedTour] = useState(null);
-
-  const handleTourSelect = (tour) => {
-    setSelectedTour(tour);
-    setCurrentPage("booking-detail");
-  };
-
-  const handleBackToTours = () => {
-    setSelectedTour(null);
-    setCurrentPage("inbound");
-  };
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case "inbound":
-        return <InboundTours onTourSelect={handleTourSelect} />;
-      case "booking-detail":
-        return selectedTour ? (
-          <BookingDetail tour={selectedTour} onBack={handleBackToTours} />
-        ) : (
-          <InboundTours onTourSelect={handleTourSelect} />
-        );
-      case "home":
-      default:
-        return <Home />;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-white">
-      <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
-      <main>{renderPage()}</main>
+      <Header />
+      <main>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/land-operations" element={<LandOperationsPage />} />
+          <Route path="/inbound" element={<InboundTours />} />
+          <Route path="/booking-detail/:id" element={<TourDetail />} />
+          <Route path="/hotels" element={<Hotels />} />
+          <Route path="/hotels/:id" element={<HotelDetail />} />
+          <Route path="/contact" element={<ContactUs />} />
+        </Routes>
+      </main>
       <Footer />
     </div>
   );

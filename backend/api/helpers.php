@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Helper Functions
  */
@@ -7,7 +8,9 @@
 if (!defined('ALLOWED_ORIGINS_ARRAY')) {
     define('ALLOWED_ORIGINS_ARRAY', serialize([
         'http://localhost:5173',
+        'http://localhost:5174',
         'http://localhost:3000',
+        'http://localhost:5176',
         'https://indosmilesouthservices.com'
     ]));
 }
@@ -24,7 +27,8 @@ if (!defined('ALLOWED_IMAGE_TYPES_ARRAY')) {
 /**
  * Send JSON response
  */
-function sendResponse($data, $statusCode = 200, $message = null) {
+function sendResponse($data, $statusCode = 200, $message = null)
+{
     http_response_code($statusCode);
     header('Content-Type: application/json');
 
@@ -45,7 +49,8 @@ function sendResponse($data, $statusCode = 200, $message = null) {
 /**
  * Send error response
  */
-function sendError($message, $statusCode = 400, $errors = null) {
+function sendError($message, $statusCode = 400, $errors = null)
+{
     http_response_code($statusCode);
     header('Content-Type: application/json');
 
@@ -66,7 +71,8 @@ function sendError($message, $statusCode = 400, $errors = null) {
 /**
  * Handle CORS
  */
-function handleCORS() {
+function handleCORS()
+{
     // ลบ CORS headers เก่าที่อาจซ้ำ
     if (function_exists('header_remove')) {
         header_remove('Access-Control-Allow-Origin');
@@ -96,14 +102,16 @@ function handleCORS() {
 /**
  * Get request method
  */
-function getRequestMethod() {
+function getRequestMethod()
+{
     return $_SERVER['REQUEST_METHOD'];
 }
 
 /**
  * Get JSON input
  */
-function getJSONInput() {
+function getJSONInput()
+{
     $input = file_get_contents('php://input');
     return json_decode($input, true);
 }
@@ -111,7 +119,8 @@ function getJSONInput() {
 /**
  * Validate required fields
  */
-function validateRequired($data, $requiredFields) {
+function validateRequired($data, $requiredFields)
+{
     $missing = [];
 
     foreach ($requiredFields as $field) {
@@ -126,7 +135,8 @@ function validateRequired($data, $requiredFields) {
 /**
  * Sanitize input
  */
-function sanitizeInput($data) {
+function sanitizeInput($data)
+{
     if (is_array($data)) {
         return array_map('sanitizeInput', $data);
     }
@@ -137,7 +147,8 @@ function sanitizeInput($data) {
 /**
  * Generate slug from string
  */
-function generateSlug($string) {
+function generateSlug($string)
+{
     $string = strtolower($string);
     $string = preg_replace('/[^a-z0-9-]/', '-', $string);
     $string = preg_replace('/-+/', '-', $string);
@@ -148,8 +159,10 @@ function generateSlug($string) {
 /**
  * Verify admin session
  */
-function verifyAdminSession() {
+function verifyAdminSession()
+{
     if (session_status() === PHP_SESSION_NONE) {
+        session_name(SESSION_NAME);
         session_start();
     }
 
@@ -163,7 +176,8 @@ function verifyAdminSession() {
 /**
  * Get pagination params
  */
-function getPaginationParams() {
+function getPaginationParams()
+{
     $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
     $limit = isset($_GET['limit']) ? min(intval($_GET['limit']), MAX_PAGE_SIZE) : DEFAULT_PAGE_SIZE;
     $offset = ($page - 1) * $limit;
@@ -178,7 +192,8 @@ function getPaginationParams() {
 /**
  * Build pagination response
  */
-function buildPaginationResponse($data, $total, $page, $limit) {
+function buildPaginationResponse($data, $total, $page, $limit)
+{
     $totalPages = ceil($total / $limit);
 
     return [
@@ -197,7 +212,8 @@ function buildPaginationResponse($data, $total, $page, $limit) {
 /**
  * Upload image file
  */
-function uploadImage($file, $subdir = 'tours') {
+function uploadImage($file, $subdir = 'tours')
+{
     if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
         return array('success' => false, 'message' => 'No file uploaded or upload error');
     }
@@ -231,7 +247,8 @@ function uploadImage($file, $subdir = 'tours') {
 /**
  * Generate booking reference
  */
-function generateBookingReference() {
+function generateBookingReference()
+{
     $prefix = 'INDO';
     $timestamp = time();
     $random = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));

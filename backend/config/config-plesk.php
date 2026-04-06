@@ -13,8 +13,8 @@ define('DB_PASS', 'Admin@2025!');      // ⬅️ เปลี่ยนตาม 
 define('DB_CHARSET', 'utf8mb4');
 
 // API Configuration
-define('API_VERSION', 'v1');
-define('API_BASE_URL', 'https://indosmilesouthservices.com/backend/api/v1');
+define('API_VERSION', '1');
+define('API_BASE_URL', 'https://indosmilesouthservices.com/backend/api');
 
 // Session Configuration
 define('SESSION_LIFETIME', 7200); // 2 hours
