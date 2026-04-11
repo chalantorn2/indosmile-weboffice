@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import BookingSidebar from "./BookingSidebar";
+import BookingSidebar from "../components/BookingSidebar";
 import { useParams, useNavigate, Navigate, Link } from "react-router-dom";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import GroupIcon from "@mui/icons-material/Group";

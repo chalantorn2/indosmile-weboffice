@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import BlogCard from "./BlogCard";
+import BlogCard from "../sections/BlogCard";
 
 const API_BASE = "/backend/api";
 

@@ -1,17 +1,17 @@
 import { Routes, Route } from "react-router-dom";
-import Home from "./components/Home";
-import InboundTours from "./components/InboundTours";
-import TourDetail from "./components/TourDetail";
-import ContactUs from "./components/ContactUs";
-import Hotels from "./components/Hotels";
-import HotelDetail from "./components/HotelDetail";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
-import AboutPage from "./components/AboutPage";
-import LandOperationsPage from "./components/LandOperationsPage";
-import BlogPage from "./components/BlogPage";
-import BlogDetail from "./components/BlogDetail";
-import TransferPage from "./components/TransferPage";
+import Home from "./pages/Home";
+import AboutPage from "./pages/AboutPage";
+import InboundTours from "./pages/InboundTours";
+import TourDetail from "./pages/TourDetail";
+import ContactUs from "./pages/ContactUs";
+import Hotels from "./pages/Hotels";
+import HotelDetail from "./pages/HotelDetail";
+import LandOperationsPage from "./pages/LandOperationsPage";
+import BlogPage from "./pages/BlogPage";
+import BlogDetail from "./pages/BlogDetail";
+import TransferPage from "./pages/TransferPage";
 
 function App() {
   return (

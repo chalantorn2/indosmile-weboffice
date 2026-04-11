@@ -5,7 +5,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
 import LocalTaxiIcon from "@mui/icons-material/LocalTaxi";
 import OneDayTripDetail from "./OneDayTripDetail";
-import BookingSidebar from "./BookingSidebar";
+import BookingSidebar from "../components/BookingSidebar";
 
 const API_BASE = '/backend/api';
 

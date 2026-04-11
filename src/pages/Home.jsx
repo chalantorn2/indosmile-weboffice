@@ -1,9 +1,9 @@
-import Hero from './Hero';
-import ServiceCards from './ServiceCards';
-import FeaturedTours from './FeaturedTours';
-import WhyChooseUs from './WhyChooseUs';
-import AboutSection from './AboutSection';
-import ContactStrip from './ContactStrip';
+import Hero from '../components/Hero';
+import ServiceCards from '../components/ServiceCards';
+import WhyChooseUs from '../components/WhyChooseUs';
+import ContactStrip from '../components/ContactStrip';
+import FeaturedTours from '../sections/FeaturedTours';
+import AboutSection from '../sections/AboutSection';
 
 export default function Home() {
   return (

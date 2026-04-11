@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import BlogCard from "./BlogCard";
+import BlogCard from "../sections/BlogCard";
 
 const API_BASE = "/backend/api";
 
