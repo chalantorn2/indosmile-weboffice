@@ -21,10 +21,11 @@ export default function Header() {
 
   const menuItems = [
     { name: "Home", path: "/" },
-    { name: "About", path: "/about", disabled: true },
-    { name: "Inbound Tours", path: "/inbound" },
+    { name: "One Day Trip", path: "/inbound" },
+    { name: "Transfer", path: "/transfer" },
     { name: "Hotels", path: "/hotels" },
-    { name: "Land Operations", path: "/land-operations", disabled: true },
+    { name: "Blog", path: "/blog" },
+    { name: "About", path: "/about" },
   ];
 
   const handleMenuClick = () => {
@@ -32,24 +33,34 @@ export default function Header() {
   };
 
   return (
-    <header className={`w-full z-50 transition-all duration-300 ${isHome ? "fixed top-0" : "sticky top-0"} ${isTransparent ? "bg-transparent py-2 border-b border-white/10" : "bg-white shadow-md py-0"}`}>
+    <header
+      className={`w-full z-50 transition-all duration-300 ${isHome ? "fixed top-0" : "sticky top-0"} ${isTransparent ? "bg-transparent py-2 border-b border-white/10" : "bg-white shadow-md py-0"}`}
+    >
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <div className="shrink-0">
-            <Link to="/" className="flex items-center gap-3" onClick={handleMenuClick}>
+            <Link
+              to="/"
+              className="flex items-center gap-3"
+              onClick={handleMenuClick}
+            >
               <img
                 src="/Final Logo.png"
                 alt="Indo Smile South Services"
                 className={`h-12 w-auto transition-all duration-300 ${isTransparent ? "drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]" : ""}`}
               />
-              <div className={`font-heading text-3xl tracking-wide transition-colors duration-300 ${isTransparent ? "text-white" : "text-navy"}`}>INDO SMILE</div>
+              <div
+                className={`font-heading text-3xl tracking-wide transition-colors duration-300 ${isTransparent ? "text-white" : "text-navy"}`}
+              >
+                INDO SMILE
+              </div>
             </Link>
           </div>
 
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center space-x-8">
-            {menuItems.map((item) => (
+            {menuItems.map((item) =>
               item.disabled ? (
                 <span
                   key={item.name}
@@ -65,19 +76,23 @@ export default function Header() {
                   key={item.name}
                   to={item.path}
                   className={`font-body font-medium transition-colors duration-200 ${
-                    isTransparent 
-                      ? "text-white/90 hover:text-white" 
+                    isTransparent
+                      ? "text-white/90 hover:text-white"
                       : "text-navy hover:text-yellow"
                   } ${
-                    location.pathname === item.path && !isTransparent ? 'text-yellow' : ''
+                    location.pathname === item.path && !isTransparent
+                      ? "text-yellow"
+                      : ""
                   } ${
-                    location.pathname === item.path && isTransparent ? 'font-bold text-white' : ''
+                    location.pathname === item.path && isTransparent
+                      ? "font-bold text-white"
+                      : ""
                   }`}
                 >
                   {item.name}
                 </Link>
-              )
-            ))}
+              ),
+            )}
           </div>
 
           {/* CTA Button */}
@@ -123,13 +138,14 @@ export default function Header() {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="lg:hidden py-4 border-t border-gray-200">
-            {menuItems.map((item) => (
+            {menuItems.map((item) =>
               item.disabled ? (
                 <span
                   key={item.name}
                   className="block w-full text-left py-3 text-navy/30 font-body font-medium cursor-default select-none"
                 >
-                  {item.name} <span className="text-xs text-navy/20 ml-1">Coming Soon</span>
+                  {item.name}{" "}
+                  <span className="text-xs text-navy/20 ml-1">Coming Soon</span>
                 </span>
               ) : (
                 <Link
@@ -137,13 +153,13 @@ export default function Header() {
                   to={item.path}
                   onClick={handleMenuClick}
                   className={`block w-full text-left py-3 text-navy font-body font-medium hover:text-yellow transition-colors duration-200 ${
-                    location.pathname === item.path ? 'text-yellow' : ''
+                    location.pathname === item.path ? "text-yellow" : ""
                   }`}
                 >
                   {item.name}
                 </Link>
-              )
-            ))}
+              ),
+            )}
             <button
               onClick={() => {
                 handleMenuClick();

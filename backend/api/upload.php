@@ -26,7 +26,11 @@ if (empty($_FILES)) {
 
 // Handle single file upload
 if (isset($_FILES['image'])) {
-    $result = uploadImage($_FILES['image'], 'tours');
+    $folder = isset($_GET['folder']) ? $_GET['folder'] : 'tours';
+    if (!preg_match('/^[a-zA-Z0-9_-]+$/', $folder)) {
+        $folder = 'tours';
+    }
+    $result = uploadImage($_FILES['image'], $folder);
 
     if ($result['success']) {
         sendResponse(['url' => $result['url']], 201, 'Image uploaded successfully');

@@ -1,4 +1,23 @@
+import { useState, useEffect } from "react";
+
 export default function ContactStrip() {
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    fetch("/backend/api/public_settings.php")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setSettings(data.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const phone = settings?.site_phone || "082 253 6662";
+  const email = settings?.site_email || "info@indosmilesouthservices.com";
+  const address =
+    settings?.site_address ||
+    "199/100 Moo 9, Thepkrasattri, Thalang, Phuket 83110";
+
   const contactInfo = [
     {
       icon: (
@@ -17,8 +36,8 @@ export default function ContactStrip() {
         </svg>
       ),
       label: "Phone",
-      value: "082 253 6662",
-      href: "tel:0822536662",
+      value: phone,
+      href: `tel:${phone.split(/[\n,]+/)[0].replace(/\s+/g, "")}`,
     },
     {
       icon: (
@@ -37,8 +56,8 @@ export default function ContactStrip() {
         </svg>
       ),
       label: "Email",
-      value: "info@indosmilesouthservices.com",
-      href: "mailto:info@indosmilesouthservices.com",
+      value: email,
+      href: `mailto:${email}`,
     },
     {
       icon: (
@@ -63,8 +82,8 @@ export default function ContactStrip() {
         </svg>
       ),
       label: "Address",
-      value: "199/100 Moo 9, Thepkrasattri, Thalang, Phuket 83110",
-      href: "https://maps.google.com/?q=199/100+Moo+9+Thepkrasattri+Thalang+Phuket+83110",
+      value: address,
+      href: `https://maps.google.com/?q=${encodeURIComponent(address)}`,
     },
   ];
 
@@ -100,7 +119,7 @@ export default function ContactStrip() {
           {/* CTA Button */}
           <div className="lg:ml-8">
             <a
-              href="mailto:info@indosmilesouthservices.com"
+              href={`mailto:${email}`}
               className="inline-block bg-yellow text-navy px-8 py-4 rounded-lg font-body font-semibold hover:bg-opacity-90 transition-all duration-200 shadow-lg whitespace-nowrap"
             >
               Get in Touch

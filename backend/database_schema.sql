@@ -191,9 +191,14 @@ INSERT INTO `settings` (`setting_key`, `setting_value`, `setting_type`, `descrip
 ('site_name', 'Indo Smile South Services', 'string', 'Website name'),
 ('site_email', 'info@indosmilesouthservices.com', 'string', 'Contact email'),
 ('site_phone', '+66 XX XXX XXXX', 'string', 'Contact phone'),
+('site_address', '199/100 Moo 9, Thepkrasattri, Thalang, Phuket 83110', 'string', 'Office address'),
 ('currency_default', 'THB', 'string', 'Default currency'),
 ('booking_confirmation_auto', '0', 'boolean', 'Auto-confirm bookings'),
-('email_notifications_enabled', '1', 'boolean', 'Enable email notifications')
+('email_notifications_enabled', '1', 'boolean', 'Enable email notifications'),
+('social_facebook', '', 'string', 'Facebook page URL'),
+('social_instagram', '', 'string', 'Instagram page URL'),
+('social_line', '', 'string', 'LINE Official Account URL'),
+('social_whatsapp', '', 'string', 'WhatsApp link')
 ON DUPLICATE KEY UPDATE `setting_key` = `setting_key`;
 
 -- ===================================
@@ -375,3 +380,33 @@ INSERT INTO `tours` (
 );
 
 -- End of schema
+
+-- ===================================
+-- 8. Transfers Table
+-- ===================================
+CREATE TABLE IF NOT EXISTS `transfers` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `origin` VARCHAR(150) NOT NULL,
+  `destination` VARCHAR(150) NOT NULL,
+  `vehicle_name` VARCHAR(150) NOT NULL,
+  `max_passengers` INT(11) DEFAULT 1,
+  `price` DECIMAL(10, 2) NOT NULL,
+  `image_url` TEXT NULL,
+  `description` TEXT NULL,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_origin_dest` (`origin`, `destination`),
+  INDEX `idx_is_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================
+-- 9. Transfer Page Gallery (stored in settings as JSON)
+-- ===================================
+-- Gallery images for the "Our Services in Action" section on the Transfer page.
+-- Managed via Admin Panel > Transfers > Page Gallery.
+-- Format: JSON array of {src, alt} objects.
+INSERT INTO `settings` (`setting_key`, `setting_value`, `setting_type`, `description`) VALUES
+('transfer_gallery', '[{"src":"https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600&q=80","alt":"VIP Van Transfer"},{"src":"https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=600&q=80","alt":"Luxury Coach Service"},{"src":"https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80","alt":"Airport Transfer"},{"src":"https://images.unsplash.com/photo-1549317661-a47734bbd828?w=600&q=80","alt":"Private Sedan"},{"src":"https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=600&q=80","alt":"Airport Pickup Service"},{"src":"https://images.unsplash.com/photo-1609520505218-7421df70a75b?w=600&q=80","alt":"Group Transfer"}]', 'json', 'Transfer page gallery images (JSON array of {src, alt})')
+ON DUPLICATE KEY UPDATE `setting_key` = `setting_key`;

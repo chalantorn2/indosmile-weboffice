@@ -28,6 +28,8 @@ export default function OneDayTripDetail({ tourData }) {
     if (!tourData) fetchTour();
   }, [id]);
 
+
+
   const fetchTour = async () => {
     try {
       setLoading(true);
@@ -81,6 +83,21 @@ export default function OneDayTripDetail({ tourData }) {
   const tourImages = tour
     ? (tour.images && tour.images.length > 0 ? [tour.image, ...tour.images] : [tour.image])
     : [];
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setLightboxOpen(false);
+      } else if (e.key === 'ArrowRight') {
+        if (selectedImage < tourImages.length - 1) setSelectedImage(prev => prev + 1);
+      } else if (e.key === 'ArrowLeft') {
+        if (selectedImage > 0) setSelectedImage(prev => prev - 1);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen, selectedImage, tourImages.length]);
 
 
   if (loading) {

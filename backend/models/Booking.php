@@ -114,7 +114,7 @@ class Booking {
      * Get booking by ID
      */
     public function getById($id) {
-        $query = "SELECT b.*, t.name as tour_name, t.destination, t.type as tour_type, t.price as tour_price
+        $query = "SELECT b.*, t.name as tour_name, t.destination, t.type as tour_type, t.adult_price as tour_price
                   FROM {$this->table} b
                   LEFT JOIN tours t ON b.tour_id = t.id
                   WHERE b.id = :id LIMIT 1";

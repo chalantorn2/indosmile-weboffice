@@ -144,8 +144,12 @@ function handlePostRequest($bookingModel, $tourModel) {
     }
 
     // Calculate total price
-    $numberOfGuests = (int)$input['number_of_guests'];
-    $totalPrice = $tour['price'] * $numberOfGuests;
+    $adults = isset($input['adults']) ? (int)$input['adults'] : (int)$input['number_of_guests'];
+    $children = isset($input['children']) ? (int)$input['children'] : 0;
+    $adultPrice = floatval($tour['adult_price']);
+    $childPrice = isset($tour['child_price']) ? floatval($tour['child_price']) : 0;
+    $totalPrice = ($adults * $adultPrice) + ($children * $childPrice);
+    $numberOfGuests = $adults + $children;
 
     // Generate booking reference
     $bookingReference = generateBookingReference();
@@ -180,6 +184,10 @@ function handlePostRequest($bookingModel, $tourModel) {
 
         if ($bookingId) {
             $booking = $bookingModel->getById($bookingId);
+
+            // Send email notification
+            sendBookingEmail($data, $tour);
+
             sendResponse($booking, 201, 'Booking created successfully');
         } else {
             sendError('Failed to create booking', 500);
@@ -270,4 +278,81 @@ function handlePutRequest($bookingModel) {
  */
 function handleDeleteRequest($bookingModel) {
     sendError('Deleting bookings is not allowed. Use cancel instead.', 403);
+}
+
+/**
+ * Send booking notification email to admin
+ */
+function sendBookingEmail($bookingData, $tour) {
+    $to = 'info@indosmilesouthservices.com';
+    $subject = 'New Booking from ' . $bookingData['customer_name'] . ' - ' . $tour['name'] . ' (' . $bookingData['booking_reference'] . ')';
+
+    $travelDate = date('d M Y', strtotime($bookingData['travel_date']));
+    $totalPrice = number_format($bookingData['total_price'], 0) . ' ' . ($bookingData['currency'] ?? 'THB');
+
+    $body = "
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .header { background-color: #1B2E4A; color: #fff; padding: 20px; text-align: center; }
+            .header h1 { margin: 0; font-size: 22px; }
+            .content { padding: 20px; background-color: #f9f9f9; }
+            .info-table { width: 100%; border-collapse: collapse; }
+            .info-table td { padding: 10px 12px; border-bottom: 1px solid #e0e0e0; }
+            .info-table td:first-child { font-weight: bold; width: 40%; color: #1B2E4A; }
+            .highlight { background-color: #FFC72C; color: #1B2E4A; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; }
+            .footer { padding: 15px; text-align: center; font-size: 12px; color: #999; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <h1>New Tour Booking</h1>
+            </div>
+            <div class='highlight'>
+                Booking Reference: {$bookingData['booking_reference']}
+            </div>
+            <div class='content'>
+                <h3 style='color: #1B2E4A;'>Customer Information</h3>
+                <table class='info-table'>
+                    <tr><td>Name</td><td>{$bookingData['customer_name']}</td></tr>
+                    <tr><td>Email</td><td>{$bookingData['customer_email']}</td></tr>
+                    <tr><td>Phone</td><td>{$bookingData['customer_phone']}</td></tr>
+                </table>
+
+                <h3 style='color: #1B2E4A; margin-top: 20px;'>Booking Details</h3>
+                <table class='info-table'>
+                    <tr><td>Tour</td><td>{$tour['name']}</td></tr>
+                    <tr><td>Destination</td><td>{$tour['destination']}</td></tr>
+                    <tr><td>Travel Date</td><td>{$travelDate}</td></tr>
+                    <tr><td>Adults</td><td>{$bookingData['adults']}</td></tr>
+                    <tr><td>Children</td><td>{$bookingData['children']}</td></tr>
+                    <tr><td>Total Guests</td><td>{$bookingData['number_of_guests']}</td></tr>
+                    <tr><td>Total Price</td><td>{$totalPrice}</td></tr>
+                </table>";
+
+    if (!empty($bookingData['special_requests'])) {
+        $body .= "
+                <h3 style='color: #1B2E4A; margin-top: 20px;'>Special Requests</h3>
+                <p style='background: #fff; padding: 12px; border-radius: 4px;'>{$bookingData['special_requests']}</p>";
+    }
+
+    $body .= "
+            </div>
+            <div class='footer'>
+                <p>This is an automated notification from Indo Smile South Services booking system.</p>
+                <p>Please log in to the admin panel to manage this booking.</p>
+            </div>
+        </div>
+    </body>
+    </html>";
+
+    $headers = "MIME-Version: 1.0\r\n";
+    $headers .= "Content-type: text/html; charset=UTF-8\r\n";
+    $headers .= "From: Indo Smile Booking <booking@indosmilesouthservices.com>\r\n";
+    $headers .= "Reply-To: {$bookingData['customer_name']} <{$bookingData['customer_email']}>\r\n";
+
+    @mail($to, $subject, $body, $headers, '-f info@indosmilesouthservices.com');
 }

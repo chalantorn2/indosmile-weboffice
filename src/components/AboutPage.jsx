@@ -163,21 +163,19 @@ export default function AboutPage() {
       </section>
 
       {/* Team / Placeholders */}
-      <section className="py-24 bg-light-gray">
+      {/* <section className="py-24 bg-light-gray">
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
              <h2 className="font-heading text-4xl md:text-5xl text-navy mb-6">Meet the Experts</h2>
              <p className="font-body text-lg text-gray-600 max-w-2xl mx-auto mb-16">
                Leading a dedicated team that is passionate about sharing the beauty of Southeast Asia with the world.
              </p>
-             {/* This will be updated with real team members later */}
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {[1, 2, 3, 4].map((i) => (
                    <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden group">
                       <div className="h-64 bg-gray-200 overflow-hidden relative">
                          <div className="absolute inset-0 bg-navy/20 group-hover:bg-transparent transition-all duration-300 z-10"></div>
                          <img src={`https://images.unsplash.com/photo-${1500000000000 + i}?placeholderIfNotFound=true&w=400&h=400`} alt="Team Member" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 blur-sm grayscale group-hover:grayscale-0 group-hover:blur-0" />
-                         {/* Placeholder overlay to imply "coming soon" */}
-                         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                                         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
                             <span className="bg-white/80 text-navy px-4 py-1 rounded-full text-sm font-semibold backdrop-blur-sm">Team Data Needed</span>
                          </div>
                       </div>
@@ -189,7 +187,7 @@ export default function AboutPage() {
                 ))}
              </div>
          </div>
-      </section>
+      </section> */}
 
     </div>
   );

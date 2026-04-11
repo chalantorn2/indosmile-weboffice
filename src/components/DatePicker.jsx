@@ -8,10 +8,10 @@ const CustomInput = forwardRef(({ value, onClick, placeholder }, ref) => (
     type="button"
     ref={ref}
     onClick={onClick}
-    className="w-full flex items-center gap-2 px-2.5 py-2 border border-gray-200 hover:border-gray-300 rounded-lg font-body text-sm transition-colors text-left focus:outline-none focus:border-yellow focus:ring-1 focus:ring-yellow/30"
+    className="w-full flex items-center gap-1.5 px-2 py-1.5 border border-gray-200 hover:border-gray-300 rounded-lg font-body text-[14px] transition-colors text-left focus:outline-none focus:border-yellow focus:ring-1 focus:ring-yellow/30"
   >
-    <CalendarTodayIcon sx={{ fontSize: 16 }} className="text-gray-400" />
-    <span className={value ? "text-navy" : "text-gray-400"}>
+    <CalendarTodayIcon sx={{ fontSize: 14 }} className="text-gray-400" />
+    <span className={value ? "text-navy truncate" : "text-gray-400 truncate"}>
       {value || placeholder}
     </span>
   </button>

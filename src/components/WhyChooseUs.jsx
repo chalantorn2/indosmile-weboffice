@@ -16,7 +16,7 @@ export default function WhyChooseUs() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       ),
-      title: 'Professional Land Operations',
+      title: 'Professional Transfer',
       description: 'Seamless ground handling with reliable transportation and logistics management.',
     },
     {

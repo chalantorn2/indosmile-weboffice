@@ -69,7 +69,7 @@ export default function FeaturedTours() {
   };
 
   const tabs = [
-    { id: 'inbound', label: 'Inbound Tours' },
+    { id: 'inbound', label: 'One Day Trip' },
     { id: 'outbound', label: 'Outbound Tours' },
     { id: 'incentive', label: 'Incentive Programs' },
   ];

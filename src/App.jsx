@@ -9,6 +9,9 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import AboutPage from "./components/AboutPage";
 import LandOperationsPage from "./components/LandOperationsPage";
+import BlogPage from "./components/BlogPage";
+import BlogDetail from "./components/BlogDetail";
+import TransferPage from "./components/TransferPage";
 
 function App() {
   return (
@@ -24,6 +27,9 @@ function App() {
           <Route path="/booking-detail/:id" element={<TourDetail />} />
           <Route path="/hotels" element={<Hotels />} />
           <Route path="/hotels/:id" element={<HotelDetail />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogDetail />} />
+          <Route path="/transfer" element={<TransferPage />} />
           <Route path="/contact" element={<ContactUs />} />
         </Routes>
       </main>
@@ -33,3 +39,4 @@ function App() {
 }
 
 export default App;
+
