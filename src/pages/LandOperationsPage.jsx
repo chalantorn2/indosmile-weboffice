@@ -80,7 +80,7 @@ export default function LandOperationsPage() {
                From VIP airport transfers to large-scale corporate event mobility. We provide the highest standard of ground operations across Southern Thailand.
              </p>
              <button 
-               onClick={() => navigate('/contact')}
+               onClick={() => navigate('/about#contact')}
                className="bg-yellow text-navy px-10 py-4 rounded-xl font-body font-bold text-center hover:bg-white hover:text-navy hover:-translate-y-1 transition-all duration-300 shadow-xl"
              >
                Request a Quote
@@ -174,7 +174,7 @@ export default function LandOperationsPage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                    <button 
-                     onClick={() => navigate('/contact')}
+                     onClick={() => navigate('/about#contact')}
                      className="bg-yellow text-navy px-8 py-3.5 rounded-xl font-body font-bold hover:bg-white transition-colors duration-300 shadow-lg"
                    >
                      Partner With Us

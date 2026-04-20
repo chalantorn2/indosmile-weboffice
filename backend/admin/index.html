@@ -57,10 +57,6 @@
           <h2>Admin Panel</h2>
         </div>
         <nav class="nav-menu">
-          <a href="#" class="nav-item disabled" data-page="overview">
-            <span class="icon"><i data-lucide="layout-dashboard" class="w-5 h-5"></i></span>
-            Overview
-          </a>
           <a href="#" class="nav-item active" data-page="tours">
             <span class="icon"><i data-lucide="map" class="w-5 h-5"></i></span>
             Tours
@@ -76,10 +72,6 @@
           <a href="#" class="nav-item" data-page="transfers">
             <span class="icon"><i data-lucide="car" class="w-5 h-5"></i></span>
             Transfers
-          </a>
-          <a href="#" class="nav-item disabled" data-page="bookings">
-            <span class="icon"><i data-lucide="calendar-check" class="w-5 h-5"></i></span>
-            Bookings
           </a>
           <a href="#" class="nav-item" data-page="users">
             <span class="icon"><i data-lucide="users" class="w-5 h-5"></i></span>
@@ -200,14 +192,45 @@
 
           <!-- Transfers Page -->
           <div id="transfersPage" class="page">
-            <div class="page-header">
-              <button id="addTransferBtn" class="btn btn-primary">
-                + Add New Transfer
-              </button>
+            <!-- Sub-tabs -->
+            <div class="flex gap-2 mb-5 border-b border-gray-200">
+              <button type="button" data-transfer-tab="routes" class="transfer-tab px-5 py-2.5 text-sm font-semibold border-b-2 border-navy text-navy">Routes</button>
+              <button type="button" data-transfer-tab="locations" class="transfer-tab px-5 py-2.5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-navy">Locations</button>
+              <button type="button" data-transfer-tab="vehicles" class="transfer-tab px-5 py-2.5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-navy">Vehicles</button>
+            </div>
+
+            <!-- Routes tab -->
+            <div id="transferTabRoutes" class="transfer-tab-panel">
+              <div class="page-header">
+                <button id="addRouteBtn" class="btn btn-primary">+ Add New Route</button>
+              </div>
+              <div id="routesTable" class="table-container">
+                <p class="loading">Loading...</p>
+              </div>
+            </div>
+
+            <!-- Locations tab -->
+            <div id="transferTabLocations" class="transfer-tab-panel" style="display:none">
+              <div class="page-header">
+                <button id="addLocationBtn" class="btn btn-primary">+ Add New Location</button>
+              </div>
+              <div id="locationsTable" class="table-container">
+                <p class="loading">Loading...</p>
+              </div>
+            </div>
+
+            <!-- Vehicles tab -->
+            <div id="transferTabVehicles" class="transfer-tab-panel" style="display:none">
+              <div class="page-header">
+                <button id="addVehicleBtn" class="btn btn-primary">+ Add New Vehicle</button>
+              </div>
+              <div id="vehiclesTable" class="table-container">
+                <p class="loading">Loading...</p>
+              </div>
             </div>
 
             <!-- Transfer Gallery Section -->
-            <div class="section-card settings-section-card" style="margin-bottom: 24px;">
+            <div class="section-card settings-section-card" style="margin-top: 32px;">
               <div class="section-header" style="cursor:pointer" id="transferGalleryToggle">
                 <span class="section-icon"><i data-lucide="images" class="w-4 h-4 text-navy"></i></span>
                 <h3 class="section-title">Page Gallery — "Our Services in Action"</h3>
@@ -231,10 +254,6 @@
                   </button>
                 </div>
               </div>
-            </div>
-
-            <div id="transfersTable" class="table-container">
-              <p class="loading">Loading...</p>
             </div>
           </div>
 
@@ -1472,69 +1491,164 @@
       </div>
     </div>
 
-    <!-- Transfer Modal -->
-    <div id="transferModal" class="modal">
+    <!-- Location Modal -->
+    <div id="locationModal" class="modal">
+      <div class="modal-panel bg-white w-[95%] max-w-md max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-navy/[0.03] to-transparent">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-navy/10 flex items-center justify-center"><i data-lucide="map-pin" class="w-5 h-5 text-navy"></i></div>
+            <h2 id="locationModalTitle" class="text-lg font-bold text-navy">Add New Location</h2>
+          </div>
+          <button type="button" class="location-modal-close w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all text-xl">&times;</button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6">
+          <form id="locationForm">
+            <input type="hidden" id="locationId" />
+            <div class="mb-4">
+              <label for="locationName" class="field-label">Name <span class="text-red-400">*</span></label>
+              <input type="text" id="locationName" required placeholder="e.g. Phuket Airport (HKT)" class="field-input" />
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <label for="locationSortOrder" class="field-label">Sort Order</label>
+                <input type="number" id="locationSortOrder" value="0" class="field-input" />
+              </div>
+              <div class="flex items-end">
+                <label class="toggle-row">
+                  <div class="flex items-center gap-3">
+                    <input type="checkbox" id="locationActive" checked class="toggle-checkbox" />
+                    <span class="toggle-switch toggle-green"></span>
+                    <span class="text-sm font-medium text-gray-700">Active</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div class="flex justify-end border-t border-gray-100 pt-4 gap-3">
+              <button type="button" class="location-modal-close btn btn-secondary">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="locationSaveBtn">Save Location</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vehicle Modal -->
+    <div id="vehicleModal" class="modal">
       <div class="modal-panel bg-white w-[95%] max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         <div class="flex items-center justify-between px-7 py-5 border-b border-gray-100 bg-gradient-to-r from-navy/[0.03] to-transparent">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-navy/10 flex items-center justify-center"><i data-lucide="car" class="w-5 h-5 text-navy"></i></div>
-            <div>
-              <h2 id="transferModalTitle" class="text-lg font-bold text-navy">Add New Transfer</h2>
-            </div>
+            <h2 id="vehicleModalTitle" class="text-lg font-bold text-navy">Add New Vehicle</h2>
           </div>
-          <button class="transfer-modal-close w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all text-xl">&times;</button>
+          <button type="button" class="vehicle-modal-close w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all text-xl">&times;</button>
         </div>
         <div class="flex-1 overflow-y-auto p-7">
-          <form id="transferForm">
-            <input type="hidden" id="transferId" />
-            <div class="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label for="transferOrigin" class="field-label">Origin <span class="text-red-400">*</span></label>
-                <input type="text" id="transferOrigin" required placeholder="e.g. Phuket Airport" class="field-input" />
-              </div>
-              <div>
-                <label for="transferDestination" class="field-label">Destination <span class="text-red-400">*</span></label>
-                <input type="text" id="transferDestination" required placeholder="e.g. Patong Beach" class="field-input" />
-              </div>
-            </div>
+          <form id="vehicleForm">
+            <input type="hidden" id="vehicleId" />
             <div class="mb-4">
-              <label for="transferVehicle" class="field-label">Vehicle Name <span class="text-red-400">*</span></label>
-              <input type="text" id="transferVehicle" required placeholder="e.g. Standard Car (Toyota Camry)" class="field-input" />
+              <label for="vehicleName" class="field-label">Vehicle Name <span class="text-red-400">*</span></label>
+              <input type="text" id="vehicleName" required placeholder="e.g. Standard Car (Toyota Camry)" class="field-input" />
             </div>
             <div class="grid grid-cols-3 gap-4 mb-4">
               <div>
-                <label for="transferMaxPassengers" class="field-label">Max Passengers</label>
-                <input type="number" id="transferMaxPassengers" min="1" value="1" class="field-input" />
+                <label for="vehicleMaxPassengers" class="field-label">Max Passengers</label>
+                <input type="number" id="vehicleMaxPassengers" min="1" value="1" class="field-input" />
               </div>
               <div>
-                <label for="transferMaxLuggage" class="field-label">Max Luggage</label>
-                <input type="number" id="transferMaxLuggage" min="0" value="2" class="field-input" />
+                <label for="vehicleMaxLuggage" class="field-label">Max Luggage</label>
+                <input type="number" id="vehicleMaxLuggage" min="0" value="2" class="field-input" />
               </div>
               <div>
-                <label for="transferPrice" class="field-label">Price (THB) <span class="text-red-400">*</span></label>
-                <input type="number" id="transferPrice" required step="0.01" placeholder="0.00" class="field-input" />
+                <label for="vehicleSortOrder" class="field-label">Sort Order</label>
+                <input type="number" id="vehicleSortOrder" value="0" class="field-input" />
               </div>
             </div>
             <div class="mb-4">
-              <label for="transferImage" class="field-label">Image URL</label>
-              <input type="text" id="transferImage" placeholder="https://..." class="field-input" />
+              <label class="field-label">Vehicle Image</label>
+              <div id="vehicleImageDropzone" class="dropzone border-2 border-dashed border-gray-200 rounded-xl p-4 text-center cursor-pointer hover:border-navy/40 hover:bg-navy/[0.02] transition-all min-h-[120px] flex flex-col items-center justify-center relative">
+                <div id="vehicleImagePreview" class="w-full"></div>
+                <div id="vehicleImagePlaceholder" class="dropzone-placeholder pointer-events-none">
+                  <div class="w-12 h-12 mx-auto mb-2 rounded-2xl bg-gray-100 flex items-center justify-center"><i data-lucide="image" class="w-5 h-5 text-gray-300"></i></div>
+                  <p class="text-sm font-medium text-gray-500 mb-1">Drag & drop or click to upload image</p>
+                  <small class="text-xs text-gray-400">JPEG, PNG, WebP (max 5MB)</small>
+                </div>
+                <input type="file" id="vehicleImageFile" accept="image/jpeg,image/png,image/webp" class="dropzone-input hidden" />
+              </div>
+              <input type="hidden" id="vehicleImageUrl" />
             </div>
             <div class="mb-4">
-              <label for="transferDescription" class="field-label">Description</label>
-              <textarea id="transferDescription" rows="3" class="field-input resize-y"></textarea>
+              <label for="vehicleDescription" class="field-label">Description</label>
+              <textarea id="vehicleDescription" rows="3" placeholder="e.g. Comfortable sedan for up to 3 passengers" class="field-input resize-y"></textarea>
             </div>
             <div class="mb-6">
               <label class="toggle-row">
                 <div class="flex items-center gap-3">
-                  <input type="checkbox" id="transferActive" checked class="toggle-checkbox" />
+                  <input type="checkbox" id="vehicleActive" checked class="toggle-checkbox" />
                   <span class="toggle-switch toggle-green"></span>
                   <span class="text-sm font-medium text-gray-700">Active</span>
                 </div>
               </label>
             </div>
             <div class="flex justify-end border-t border-gray-100 pt-5 gap-3">
-              <button type="button" class="transfer-modal-close btn btn-secondary">Cancel</button>
-              <button type="submit" class="btn btn-primary" id="transferSaveBtn">Save Transfer</button>
+              <button type="button" class="vehicle-modal-close btn btn-secondary">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="vehicleSaveBtn">Save Vehicle</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Route Modal -->
+    <div id="routeModal" class="modal">
+      <div class="modal-panel bg-white w-[95%] max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-7 py-5 border-b border-gray-100 bg-gradient-to-r from-navy/[0.03] to-transparent">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-navy/10 flex items-center justify-center"><i data-lucide="route" class="w-5 h-5 text-navy"></i></div>
+            <h2 id="routeModalTitle" class="text-lg font-bold text-navy">Add New Route</h2>
+          </div>
+          <button type="button" class="route-modal-close w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all text-xl">&times;</button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-7">
+          <form id="routeForm">
+            <input type="hidden" id="routeId" />
+            <div class="grid grid-cols-2 gap-4 mb-2">
+              <div>
+                <label for="routeOriginId" class="field-label">Origin <span class="text-red-400">*</span></label>
+                <select id="routeOriginId" required class="field-input">
+                  <option value="">Select location...</option>
+                </select>
+              </div>
+              <div>
+                <label for="routeDestinationId" class="field-label">Destination <span class="text-red-400">*</span></label>
+                <select id="routeDestinationId" required class="field-input">
+                  <option value="">Select location...</option>
+                </select>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 mb-5">Routes are bidirectional — pricing applies in both directions.</p>
+
+            <div class="mb-5">
+              <label class="field-label flex items-center justify-between">
+                <span>Vehicle Prices (THB)</span>
+                <span class="text-xs font-normal text-gray-400">Leave blank if vehicle does not run this route</span>
+              </label>
+              <div id="routePricesGrid" class="border border-gray-200 rounded-xl divide-y divide-gray-100">
+                <p class="loading p-4 text-center text-gray-400 text-sm">Loading vehicles...</p>
+              </div>
+            </div>
+
+            <div class="mb-6">
+              <label class="toggle-row">
+                <div class="flex items-center gap-3">
+                  <input type="checkbox" id="routeActive" checked class="toggle-checkbox" />
+                  <span class="toggle-switch toggle-green"></span>
+                  <span class="text-sm font-medium text-gray-700">Active</span>
+                </div>
+              </label>
+            </div>
+            <div class="flex justify-end border-t border-gray-100 pt-5 gap-3">
+              <button type="button" class="route-modal-close btn btn-secondary">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="routeSaveBtn">Save Route</button>
             </div>
           </form>
         </div>

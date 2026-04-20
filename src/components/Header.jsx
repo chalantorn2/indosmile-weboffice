@@ -98,7 +98,7 @@ export default function Header() {
           {/* CTA Button */}
           <div className="hidden lg:block">
             <button
-              onClick={() => navigate("/contact")}
+              onClick={() => navigate("/about#contact")}
               className="bg-yellow text-navy px-6 py-3 rounded-lg font-body font-semibold hover:bg-opacity-90 transition-all duration-200"
             >
               Contact Us
@@ -163,7 +163,7 @@ export default function Header() {
             <button
               onClick={() => {
                 handleMenuClick();
-                navigate("/contact");
+                navigate("/about#contact");
               }}
               className="block w-full mt-4 bg-yellow text-navy px-6 py-3 rounded-lg font-body font-semibold text-center hover:bg-opacity-90 transition-all duration-200"
             >

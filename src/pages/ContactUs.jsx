@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
+const API_BASE = "/backend/api";
+
 export default function ContactUs() {
   const location = useLocation();
   const [formData, setFormData] = useState({
@@ -18,21 +20,41 @@ export default function ContactUs() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulate an API call
-    setTimeout(() => {
+    setSubmitStatus(null);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(`${API_BASE}/contact.php`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitStatus("success");
+        setFormData({ name: "", email: "", subject: "", message: "" });
+        setTimeout(() => setSubmitStatus(null), 5000);
+      } else {
+        setSubmitStatus("error");
+        setErrorMessage(data.message || "Failed to send message. Please try again.");
+      }
+    } catch {
+      setSubmitStatus("error");
+      setErrorMessage("Network error. Please try again later.");
+    } finally {
       setIsSubmitting(false);
-      setSubmitStatus("success");
-      setFormData({ name: "", email: "", subject: "", message: "" });
-      setTimeout(() => setSubmitStatus(null), 5000);
-    }, 1500);
+    }
   };
 
   const departments = [
@@ -406,6 +428,25 @@ export default function ContactUs() {
                   <p className="font-body font-medium">
                     Thank you! Your message has been sent successfully.
                   </p>
+                </div>
+              )}
+
+              {submitStatus === "error" && (
+                <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-center gap-3 animate-fade-in-up">
+                  <svg
+                    className="w-6 h-6 text-red-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <p className="font-body font-medium">{errorMessage}</p>
                 </div>
               )}
             </form>

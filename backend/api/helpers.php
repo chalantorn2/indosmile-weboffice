@@ -254,3 +254,68 @@ function generateBookingReference()
     $random = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
     return $prefix . $timestamp . $random;
 }
+
+// =====================================================================
+// Backoffice intake (push to admin web at bookings.indosmilesouthservices.com)
+// =====================================================================
+
+if (!defined('BACKOFFICE_INTAKE_URL')) {
+    define('BACKOFFICE_INTAKE_URL', 'https://bookings.indosmilesouthservices.com/api/intake.php');
+}
+if (!defined('BACKOFFICE_INTAKE_KEY')) {
+    // MUST match $INTAKE_SECRET inside intake.php
+    define('BACKOFFICE_INTAKE_KEY', 'INDO_INTAKE_2026_CHANGE_ME_a8f3d2c1b4e7');
+}
+
+/**
+ * Fire-and-forget POST of a booking to the admin backoffice.
+ * Never throws — failures are logged to backend/api/intake_push.log so the
+ * customer-facing flow is never blocked by a backoffice outage.
+ *
+ * @param string $type     'tour' or 'transfer'
+ * @param array  $booking  Booking payload (already includes booking_reference,
+ *                         customer_name/email/phone, dates, pax, etc.)
+ */
+function pushBookingToBackoffice($type, array $booking)
+{
+    $logFile = __DIR__ . '/intake_push.log';
+    $log = function ($msg) use ($logFile) {
+        @file_put_contents($logFile, '[' . date('Y-m-d H:i:s') . '] ' . $msg . PHP_EOL, FILE_APPEND);
+    };
+
+    try {
+        $payload = json_encode([
+            'type'    => $type,
+            'booking' => $booking,
+        ], JSON_UNESCAPED_UNICODE);
+
+        $ch = curl_init(BACKOFFICE_INTAKE_URL);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'X-Intake-Key: ' . BACKOFFICE_INTAKE_KEY,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        $ref = $booking['booking_reference'] ?? '?';
+        if ($response === false) {
+            $log("PUSH FAIL ref=$ref type=$type curl_error=$err");
+            return;
+        }
+        if ($httpCode < 200 || $httpCode >= 300) {
+            $log("PUSH FAIL ref=$ref type=$type http=$httpCode body=" . substr($response, 0, 300));
+            return;
+        }
+        $log("PUSH OK ref=$ref type=$type http=$httpCode body=" . substr($response, 0, 200));
+    } catch (Exception $e) {
+        $log('PUSH EXCEPTION: ' . $e->getMessage());
+    }
+}

@@ -1,211 +1,293 @@
 <?php
+
 /**
  * Transfers API Endpoint
- * Handles all transfer-related API requests
+ *
+ * Resources (admin CRUD):
+ *   GET    ?resource=locations         list locations
+ *   POST   ?resource=locations         create location
+ *   PUT    ?resource=locations&id=N    update location
+ *   DELETE ?resource=locations&id=N    delete location
+ *
+ *   GET    ?resource=vehicles          list vehicles
+ *   POST   ?resource=vehicles          create vehicle
+ *   PUT    ?resource=vehicles&id=N     update vehicle
+ *   DELETE ?resource=vehicles&id=N     delete vehicle
+ *
+ *   GET    ?resource=routes            list routes (with prices)
+ *   POST   ?resource=routes            create route + prices
+ *   PUT    ?resource=routes&id=N       update route + replace prices
+ *   DELETE ?resource=routes&id=N       delete route
+ *
+ * Public actions:
+ *   GET ?action=options                                   list origin location names
+ *   GET ?action=options&origin=X                          list destinations reachable from X
+ *   GET ?action=options&origin=X&destination=Y            list vehicles + prices for that pair
+ *   GET ?action=gallery                                   transfer page gallery images
+ *   POST ?action=gallery                                  (admin) save gallery
+ *   POST ?action=book                                     submit transfer booking
+ *
+ * Admin booking management (existing):
+ *   GET ?action=bookings[&stats=1]
  */
 
 header('Content-Type: application/json');
 require_once '../config/config.php';
 require_once '../config/Database.php';
-require_once '../models/Transfer.php';
+require_once '../models/TransferLocation.php';
+require_once '../models/TransferVehicle.php';
+require_once '../models/TransferRoute.php';
 require_once 'helpers.php';
 
-// Handle CORS
 handleCORS();
 
-// Start session
 if (session_status() === PHP_SESSION_NONE) {
     session_name(SESSION_NAME);
     session_start();
 }
 
-// Initialize database connection
 try {
     $database = new Database();
     $db = $database->connect();
-    $transferModel = new Transfer($db);
+    $locationModel = new TransferLocation($db);
+    $vehicleModel = new TransferVehicle($db);
+    $routeModel = new TransferRoute($db);
 } catch (Exception $e) {
     sendError('Database connection failed', 500);
 }
 
 $method = getRequestMethod();
+$resource = isset($_GET['resource']) ? $_GET['resource'] : null;
+$action = isset($_GET['action']) ? $_GET['action'] : null;
 
-switch ($method) {
-    case 'GET':
-        handleGetRequest($transferModel, $db);
-        break;
-    case 'POST':
-        handlePostRequest($transferModel, $db);
-        break;
-    case 'PUT':
-        handlePutRequest($transferModel);
-        break;
-    case 'DELETE':
-        handleDeleteRequest($transferModel);
-        break;
-    default:
-        sendError('Method not allowed', 405);
+// Public actions first (no admin session required)
+if ($action === 'options' && $method === 'GET') {
+    handleOptions($routeModel);
+    exit;
+}
+if ($action === 'gallery' && $method === 'GET') {
+    sendResponse(getTransferGallery($db), 200);
+    exit;
+}
+if ($action === 'book' && $method === 'POST') {
+    handleTransferBooking($db);
+    exit;
 }
 
-function handleGetRequest($transferModel, $db) {
-    $action = isset($_GET['action']) ? $_GET['action'] : null;
-
-    if ($action === 'options') {
-        // Dynamic frontend dropdowns
-        if (isset($_GET['origin']) && isset($_GET['destination'])) {
-            $vehicles = $transferModel->getVehiclesByRoute($_GET['origin'], $_GET['destination']);
-            sendResponse($vehicles, 200);
-        } elseif (isset($_GET['origin'])) {
-            $destinations = $transferModel->getDestinationsByOrigin($_GET['origin']);
-            sendResponse($destinations, 200);
-        } else {
-            $origins = $transferModel->getOrigins();
-            sendResponse($origins, 200);
-        }
-    } elseif ($action === 'gallery') {
-        // Public: get transfer page gallery images
-        $gallery = getTransferGallery($db);
-        sendResponse($gallery, 200);
-    } elseif ($action === 'bookings') {
-        // Admin: list transfer bookings
-        verifyAdminSession();
-        require_once '../models/TransferBooking.php';
-        $transferBookingModel = new TransferBooking($db);
-
-        if (isset($_GET['stats'])) {
-            $stats = $transferBookingModel->getStats();
-            sendResponse($stats, 200);
-        }
-
-        $filters = [
-            'status' => $_GET['status'] ?? null,
-            'search' => $_GET['search'] ?? null,
-            'date_from' => $_GET['date_from'] ?? null,
-            'date_to' => $_GET['date_to'] ?? null,
-            'sort_by' => $_GET['sort_by'] ?? 'created_at',
-            'sort_order' => $_GET['sort_order'] ?? 'DESC'
-        ];
-
-        $pagination = getPaginationParams();
-        $filters['limit'] = $pagination['limit'];
-        $filters['offset'] = $pagination['offset'];
-
-        $bookings = $transferBookingModel->getAll($filters);
-        $total = $transferBookingModel->getCount($filters);
-
-        $response = buildPaginationResponse($bookings, $total, $pagination['page'], $pagination['limit']);
-        sendResponse($response, 200);
-    } else {
-        // Admin CRUD
-        if (isset($_GET['id'])) {
-            $transfer = $transferModel->getById($_GET['id']);
-            if ($transfer) {
-                sendResponse($transfer, 200);
-            } else {
-                sendError('Transfer not found', 404);
-            }
-        } else {
-            $filters = [];
-            if (isset($_GET['active']) && $_GET['active'] !== '') {
-                $filters['is_active'] = (int)$_GET['active'];
-            }
-            $transfers = $transferModel->getAll($filters);
-            sendResponse(["data" => $transfers, "total" => count($transfers)], 200);
-        }
-    }
+// Resource-based admin endpoints
+if ($resource === 'locations') {
+    handleResource($method, $locationModel, 'location');
+    exit;
+}
+if ($resource === 'vehicles') {
+    handleResource($method, $vehicleModel, 'vehicle');
+    exit;
+}
+if ($resource === 'routes') {
+    handleResource($method, $routeModel, 'route');
+    exit;
 }
 
-function handlePostRequest($transferModel, $db) {
-    $action = isset($_GET['action']) ? $_GET['action'] : null;
-
-    // Public booking endpoint — no admin required
-    if ($action === 'book') {
-        handleTransferBooking($db);
-        return;
-    }
-
-    // Admin: save gallery images
-    if ($action === 'gallery') {
-        verifyAdminSession();
-        $input = getJSONInput();
-        if (!$input || !isset($input['images'])) {
-            sendError('Invalid input: images array required', 400);
-        }
-        saveTransferGallery($db, $input['images']);
-        sendResponse($input['images'], 200, 'Gallery updated successfully');
-        return;
-    }
-
-    // Admin CRUD — requires admin session
+// Admin gallery save
+if ($action === 'gallery' && $method === 'POST') {
     verifyAdminSession();
-
     $input = getJSONInput();
-    if (!$input) {
-        sendError('Invalid JSON input', 400);
+    if (!$input || !isset($input['images'])) {
+        sendError('Invalid input: images array required', 400);
     }
+    saveTransferGallery($db, $input['images']);
+    sendResponse($input['images'], 200, 'Gallery updated successfully');
+    exit;
+}
 
-    $requiredFields = ['origin', 'destination', 'vehicle_name', 'price'];
-    $missing = validateRequired($input, $requiredFields);
+// Admin booking list
+if ($action === 'bookings' && $method === 'GET') {
+    handleBookingsList($db);
+    exit;
+}
 
-    if (!empty($missing)) {
-        sendError('Missing required fields: ' . implode(', ', $missing), 400);
-    }
+sendError('Unknown endpoint. Use ?resource= or ?action=', 400);
 
-    $data = [
-        'origin' => sanitizeInput($input['origin']),
-        'destination' => sanitizeInput($input['destination']),
-        'vehicle_name' => sanitizeInput($input['vehicle_name']),
-        'max_passengers' => isset($input['max_passengers']) ? (int)$input['max_passengers'] : 1,
-        'max_luggage' => isset($input['max_luggage']) ? (int)$input['max_luggage'] : 2,
-        'price' => (float)$input['price'],
-        'image_url' => isset($input['image_url']) ? $input['image_url'] : null,
-        'description' => isset($input['description']) ? sanitizeInput($input['description']) : null,
-        'is_active' => isset($input['is_active']) ? (int)$input['is_active'] : 1
-    ];
+// =====================================================================
+// Resource handlers
+// =====================================================================
 
-    try {
-        $id = $transferModel->create($data);
-        if ($id) {
-            $transfer = $transferModel->getById($id);
-            sendResponse($transfer, 201, 'Transfer created successfully');
-        } else {
-            sendError('Failed to create transfer', 500);
-        }
-    } catch (Exception $e) {
-        sendError('Error creating transfer: ' . $e->getMessage(), 500);
+function handleResource($method, $model, $resourceLabel)
+{
+    switch ($method) {
+        case 'GET':
+            if (isset($_GET['id'])) {
+                $item = $model->getById((int)$_GET['id']);
+                if ($item) {
+                    sendResponse($item, 200);
+                } else {
+                    sendError(ucfirst($resourceLabel) . ' not found', 404);
+                }
+            } else {
+                $filters = [];
+                if (isset($_GET['active']) && $_GET['active'] !== '') {
+                    $filters['is_active'] = (int)$_GET['active'];
+                }
+                $items = $model->getAll($filters);
+                sendResponse(['data' => $items, 'total' => count($items)], 200);
+            }
+            break;
+
+        case 'POST':
+            verifyAdminSession();
+            $input = getJSONInput();
+            if (!$input) sendError('Invalid JSON input', 400);
+            try {
+                $data = prepareResourceInput($resourceLabel, $input, $model);
+                $id = $model->create($data);
+                if ($id) {
+                    $created = $model->getById($id);
+                    sendResponse($created, 201, ucfirst($resourceLabel) . ' created successfully');
+                } else {
+                    sendError('Failed to create ' . $resourceLabel, 500);
+                }
+            } catch (Exception $e) {
+                sendError($e->getMessage(), 400);
+            }
+            break;
+
+        case 'PUT':
+            verifyAdminSession();
+            if (!isset($_GET['id'])) sendError(ucfirst($resourceLabel) . ' ID is required', 400);
+            $id = (int)$_GET['id'];
+            $existing = $model->getById($id);
+            if (!$existing) sendError(ucfirst($resourceLabel) . ' not found', 404);
+
+            $input = getJSONInput();
+            if (!$input) sendError('Invalid JSON input', 400);
+            try {
+                $data = prepareResourceInput($resourceLabel, $input, $model, $id);
+                if ($model->update($id, $data)) {
+                    sendResponse($model->getById($id), 200, ucfirst($resourceLabel) . ' updated successfully');
+                } else {
+                    sendError('Failed to update ' . $resourceLabel, 500);
+                }
+            } catch (Exception $e) {
+                sendError($e->getMessage(), 400);
+            }
+            break;
+
+        case 'DELETE':
+            verifyAdminSession();
+            if (!isset($_GET['id'])) sendError(ucfirst($resourceLabel) . ' ID is required', 400);
+            $id = (int)$_GET['id'];
+            if (!$model->getById($id)) sendError(ucfirst($resourceLabel) . ' not found', 404);
+            try {
+                if ($model->delete($id)) {
+                    sendResponse(['id' => $id], 200, ucfirst($resourceLabel) . ' deleted successfully');
+                } else {
+                    sendError('Failed to delete ' . $resourceLabel, 500);
+                }
+            } catch (Exception $e) {
+                sendError($e->getMessage(), 500);
+            }
+            break;
+
+        default:
+            sendError('Method not allowed', 405);
     }
 }
 
-/**
- * Handle public transfer booking request
- */
-function handleTransferBooking($db) {
-    require_once '../models/TransferBooking.php';
+function prepareResourceInput($resource, $input, $model, $excludeId = null)
+{
+    if ($resource === 'location') {
+        if (empty($input['name']) || trim($input['name']) === '') {
+            throw new Exception('Name is required');
+        }
+        $name = sanitizeInput($input['name']);
+        if ($model->existsByName($name, $excludeId)) {
+            throw new Exception('A location with this name already exists');
+        }
+        return [
+            'name' => $name,
+            'is_active' => isset($input['is_active']) ? (int)$input['is_active'] : 1,
+            'sort_order' => isset($input['sort_order']) ? (int)$input['sort_order'] : 0,
+        ];
+    }
 
+    if ($resource === 'vehicle') {
+        if (empty($input['name']) || trim($input['name']) === '') {
+            throw new Exception('Name is required');
+        }
+        $name = sanitizeInput($input['name']);
+        if ($model->existsByName($name, $excludeId)) {
+            throw new Exception('A vehicle with this name already exists');
+        }
+        return [
+            'name' => $name,
+            'max_passengers' => isset($input['max_passengers']) ? (int)$input['max_passengers'] : 1,
+            'max_luggage' => isset($input['max_luggage']) ? (int)$input['max_luggage'] : 2,
+            'image_url' => isset($input['image_url']) ? $input['image_url'] : null,
+            'description' => isset($input['description']) ? sanitizeInput($input['description']) : null,
+            'is_active' => isset($input['is_active']) ? (int)$input['is_active'] : 1,
+            'sort_order' => isset($input['sort_order']) ? (int)$input['sort_order'] : 0,
+        ];
+    }
+
+    if ($resource === 'route') {
+        if (empty($input['origin_id']) || empty($input['destination_id'])) {
+            throw new Exception('origin_id and destination_id are required');
+        }
+        if ((int)$input['origin_id'] === (int)$input['destination_id']) {
+            throw new Exception('Origin and destination must be different locations');
+        }
+        return [
+            'origin_id' => (int)$input['origin_id'],
+            'destination_id' => (int)$input['destination_id'],
+            'is_active' => isset($input['is_active']) ? (int)$input['is_active'] : 1,
+            'prices' => isset($input['prices']) && is_array($input['prices']) ? $input['prices'] : [],
+        ];
+    }
+
+    return $input;
+}
+
+// =====================================================================
+// Public options endpoint (drives frontend dropdowns)
+// =====================================================================
+
+function handleOptions($routeModel)
+{
+    if (isset($_GET['origin']) && isset($_GET['destination'])) {
+        $vehicles = $routeModel->getVehiclesForLocationPair($_GET['origin'], $_GET['destination']);
+        sendResponse($vehicles, 200);
+    } elseif (isset($_GET['origin'])) {
+        $destinations = $routeModel->getDestinationsByOrigin($_GET['origin']);
+        sendResponse($destinations, 200);
+    } else {
+        $origins = $routeModel->getActiveOriginLocations();
+        sendResponse($origins, 200);
+    }
+}
+
+// =====================================================================
+// Public booking endpoint (unchanged behavior)
+// =====================================================================
+
+function handleTransferBooking($db)
+{
+    require_once '../models/TransferBooking.php';
     $transferBookingModel = new TransferBooking($db);
 
     $input = getJSONInput();
-    if (!$input) {
-        sendError('Invalid JSON input', 400);
-    }
+    if (!$input) sendError('Invalid JSON input', 400);
 
-    // Validate required fields
     $requiredFields = ['customer_name', 'customer_email', 'customer_phone', 'pickup_location', 'dropoff_location', 'pickup_date', 'pickup_time'];
     $missing = validateRequired($input, $requiredFields);
-
     if (!empty($missing)) {
         sendError('Missing required fields: ' . implode(', ', $missing), 400);
     }
 
-    // Validate email format
     if (!filter_var($input['customer_email'], FILTER_VALIDATE_EMAIL)) {
         sendError('Invalid email address', 400);
     }
 
-    // Generate booking reference
     $bookingReference = 'TRF' . time() . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
-
-    // Get client info
     $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
 
@@ -232,13 +314,10 @@ function handleTransferBooking($db) {
 
     try {
         $bookingId = $transferBookingModel->create($data);
-
         if ($bookingId) {
             $booking = $transferBookingModel->getById($bookingId);
-
-            // Send email notification
             sendTransferBookingEmail($data);
-
+            pushBookingToBackoffice('transfer', $data);
             sendResponse($booking, 201, 'Transfer booking submitted successfully');
         } else {
             sendError('Failed to create transfer booking', 500);
@@ -248,76 +327,45 @@ function handleTransferBooking($db) {
     }
 }
 
-function handlePutRequest($transferModel) {
+// =====================================================================
+// Admin: list bookings
+// =====================================================================
+
+function handleBookingsList($db)
+{
     verifyAdminSession();
+    require_once '../models/TransferBooking.php';
+    $transferBookingModel = new TransferBooking($db);
 
-    if (!isset($_GET['id'])) {
-        sendError('Transfer ID is required', 400);
+    if (isset($_GET['stats'])) {
+        sendResponse($transferBookingModel->getStats(), 200);
     }
 
-    $id = (int)$_GET['id'];
-    $existing = $transferModel->getById($id);
-
-    if (!$existing) {
-        sendError('Transfer not found', 404);
-    }
-
-    $input = getJSONInput();
-    if (!$input) {
-        sendError('Invalid JSON input', 400);
-    }
-
-    $data = [
-        'origin' => isset($input['origin']) ? sanitizeInput($input['origin']) : $existing['origin'],
-        'destination' => isset($input['destination']) ? sanitizeInput($input['destination']) : $existing['destination'],
-        'vehicle_name' => isset($input['vehicle_name']) ? sanitizeInput($input['vehicle_name']) : $existing['vehicle_name'],
-        'max_passengers' => isset($input['max_passengers']) ? (int)$input['max_passengers'] : $existing['max_passengers'],
-        'max_luggage' => isset($input['max_luggage']) ? (int)$input['max_luggage'] : ($existing['max_luggage'] ?? 2),
-        'price' => isset($input['price']) ? (float)$input['price'] : $existing['price'],
-        'image_url' => isset($input['image_url']) ? $input['image_url'] : $existing['image_url'],
-        'description' => isset($input['description']) ? sanitizeInput($input['description']) : $existing['description'],
-        'is_active' => isset($input['is_active']) ? (int)$input['is_active'] : $existing['is_active']
+    $filters = [
+        'status' => $_GET['status'] ?? null,
+        'search' => $_GET['search'] ?? null,
+        'date_from' => $_GET['date_from'] ?? null,
+        'date_to' => $_GET['date_to'] ?? null,
+        'sort_by' => $_GET['sort_by'] ?? 'created_at',
+        'sort_order' => $_GET['sort_order'] ?? 'DESC',
     ];
 
-    try {
-        if ($transferModel->update($id, $data)) {
-            $transfer = $transferModel->getById($id);
-            sendResponse($transfer, 200, 'Transfer updated successfully');
-        } else {
-            sendError('Failed to update transfer', 500);
-        }
-    } catch (Exception $e) {
-        sendError('Error updating transfer: ' . $e->getMessage(), 500);
-    }
+    $pagination = getPaginationParams();
+    $filters['limit'] = $pagination['limit'];
+    $filters['offset'] = $pagination['offset'];
+
+    $bookings = $transferBookingModel->getAll($filters);
+    $total = $transferBookingModel->getCount($filters);
+    $response = buildPaginationResponse($bookings, $total, $pagination['page'], $pagination['limit']);
+    sendResponse($response, 200);
 }
 
-function handleDeleteRequest($transferModel) {
-    verifyAdminSession();
+// =====================================================================
+// Email + gallery (kept from previous version)
+// =====================================================================
 
-    if (!isset($_GET['id'])) {
-        sendError('Transfer ID is required', 400);
-    }
-
-    $id = (int)$_GET['id'];
-    if (!$transferModel->getById($id)) {
-        sendError('Transfer not found', 404);
-    }
-
-    try {
-        if ($transferModel->delete($id)) {
-            sendResponse(['id' => $id], 200, 'Transfer deleted successfully');
-        } else {
-            sendError('Failed to delete transfer', 500);
-        }
-    } catch (Exception $e) {
-        sendError('Error deleting transfer: ' . $e->getMessage(), 500);
-    }
-}
-
-/**
- * Send transfer booking notification email to admin
- */
-function sendTransferBookingEmail($bookingData) {
+function sendTransferBookingEmail($bookingData)
+{
     $to = 'info@indosmilesouthservices.com';
     $subject = 'New Transfer Booking from ' . $bookingData['customer_name'] . ' (' . $bookingData['booking_reference'] . ')';
 
@@ -325,6 +373,16 @@ function sendTransferBookingEmail($bookingData) {
     $pickupTime = date('H:i', strtotime($bookingData['pickup_time']));
     $tripTypeLabel = $bookingData['trip_type'] === 'return' ? 'Return Trip' : 'One Way';
     $totalPassengers = $bookingData['adults'] + $bookingData['children'] + $bookingData['infants'];
+
+    // Extract vehicle + price line (prepended by the frontend) from special_requests
+    $vehicleName = null;
+    $vehiclePrice = null;
+    $customerNotes = $bookingData['special_requests'] ?? '';
+    if ($customerNotes && preg_match('/^\s*Vehicle:\s*(.+?)\s+[—\-–]\s+([\d,\.]+)\s+THB\s*\n?(.*)$/su', $customerNotes, $m)) {
+        $vehicleName = trim($m[1]);
+        $vehiclePrice = trim($m[2]);
+        $customerNotes = trim($m[3]);
+    }
 
     $body = "
     <html>
@@ -378,13 +436,25 @@ function sendTransferBookingEmail($bookingData) {
                     <tr><td>Adults</td><td>{$bookingData['adults']}</td></tr>
                     <tr><td>Children</td><td>{$bookingData['children']}</td></tr>
                     <tr><td>Infants</td><td>{$bookingData['infants']}</td></tr>
-                    <tr><td>Total Passengers</td><td>{$totalPassengers}</td></tr>
+                    <tr><td>Total Passengers</td><td>{$totalPassengers}</td></tr>";
+
+    if ($vehicleName !== null) {
+        $safeVehicle = htmlspecialchars($vehicleName, ENT_QUOTES, 'UTF-8');
+        $safePrice = htmlspecialchars($vehiclePrice, ENT_QUOTES, 'UTF-8');
+        $priceLabel = $bookingData['trip_type'] === 'return' ? 'Price (per way)' : 'Price';
+        $body .= "
+                    <tr><td>Vehicle</td><td>{$safeVehicle}</td></tr>
+                    <tr><td>{$priceLabel}</td><td>฿{$safePrice} THB</td></tr>";
+    }
+
+    $body .= "
                 </table>";
 
-    if (!empty($bookingData['special_requests'])) {
+    if (!empty($customerNotes)) {
+        $safeNotes = nl2br(htmlspecialchars($customerNotes, ENT_QUOTES, 'UTF-8'));
         $body .= "
                 <h3 style='color: #1B2E4A; margin-top: 20px;'>Special Requests</h3>
-                <p style='background: #fff; padding: 12px; border-radius: 4px;'>{$bookingData['special_requests']}</p>";
+                <p style='background: #fff; padding: 12px; border-radius: 4px;'>{$safeNotes}</p>";
     }
 
     $body .= "
@@ -405,10 +475,8 @@ function sendTransferBookingEmail($bookingData) {
     @mail($to, $subject, $body, $headers, '-f info@indosmilesouthservices.com');
 }
 
-/**
- * Get transfer page gallery images from settings
- */
-function getTransferGallery($db) {
+function getTransferGallery($db)
+{
     try {
         $stmt = $db->prepare("SELECT setting_value FROM settings WHERE setting_key = 'transfer_gallery' LIMIT 1");
         $stmt->execute();
@@ -418,15 +486,13 @@ function getTransferGallery($db) {
             return is_array($images) ? $images : [];
         }
     } catch (PDOException $e) {
-        // Table might not exist yet
+        // table may not exist yet
     }
     return [];
 }
 
-/**
- * Save transfer page gallery images to settings
- */
-function saveTransferGallery($db, $images) {
+function saveTransferGallery($db, $images)
+{
     $json = json_encode($images);
     $stmt = $db->prepare("INSERT INTO settings (setting_key, setting_value, setting_type, description)
         VALUES ('transfer_gallery', :val, 'json', 'Transfer page gallery images (JSON array)')

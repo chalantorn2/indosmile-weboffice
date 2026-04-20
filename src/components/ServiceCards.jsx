@@ -20,7 +20,7 @@ export default function ServiceCards() {
       ),
       title: 'Outbound Tours',
       description: 'Seamless international travel packages designed for Thai travelers seeking memorable adventures around the world.',
-      link: '/contact',
+      link: '/about#contact',
     },
     {
       icon: (
@@ -40,7 +40,7 @@ export default function ServiceCards() {
       ),
       title: 'Ticketing & Incentive Travels',
       description: 'Professional ticketing services and customized incentive travel programs for corporate groups and teams.',
-      link: '/contact',
+      link: '/about#contact',
     },
   ];
 

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Bookings API Endpoint
  * Handles all booking-related API requests
@@ -58,7 +59,8 @@ switch ($method) {
 /**
  * Handle GET requests
  */
-function handleGetRequest($bookingModel) {
+function handleGetRequest($bookingModel)
+{
     // Get booking statistics (admin only)
     if (isset($_GET['stats'])) {
         verifyAdminSession();
@@ -118,7 +120,8 @@ function handleGetRequest($bookingModel) {
 /**
  * Handle POST requests (Create new booking)
  */
-function handlePostRequest($bookingModel, $tourModel) {
+function handlePostRequest($bookingModel, $tourModel)
+{
     $input = getJSONInput();
 
     if (!$input) {
@@ -188,6 +191,15 @@ function handlePostRequest($bookingModel, $tourModel) {
             // Send email notification
             sendBookingEmail($data, $tour);
 
+            // Mirror the booking into the backoffice (admin web).
+            // Fire-and-forget; never blocks the customer response.
+            pushBookingToBackoffice('tour', array_merge($data, [
+                'tour_id'     => (int)$input['tour_id'],
+                'tour_name'   => $tour['name'] ?? null,
+                'adult_price' => $adultPrice,
+                'child_price' => $childPrice,
+            ]));
+
             sendResponse($booking, 201, 'Booking created successfully');
         } else {
             sendError('Failed to create booking', 500);
@@ -200,7 +212,8 @@ function handlePostRequest($bookingModel, $tourModel) {
 /**
  * Handle PUT requests (Update booking)
  */
-function handlePutRequest($bookingModel) {
+function handlePutRequest($bookingModel)
+{
     // Admin only
     $adminId = verifyAdminSession();
 
@@ -276,14 +289,16 @@ function handlePutRequest($bookingModel) {
 /**
  * Handle DELETE requests
  */
-function handleDeleteRequest($bookingModel) {
+function handleDeleteRequest($bookingModel)
+{
     sendError('Deleting bookings is not allowed. Use cancel instead.', 403);
 }
 
 /**
  * Send booking notification email to admin
  */
-function sendBookingEmail($bookingData, $tour) {
+function sendBookingEmail($bookingData, $tour)
+{
     $to = 'info@indosmilesouthservices.com';
     $subject = 'New Booking from ' . $bookingData['customer_name'] . ' - ' . $tour['name'] . ' (' . $bookingData['booking_reference'] . ')';
 

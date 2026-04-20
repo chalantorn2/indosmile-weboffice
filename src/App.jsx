@@ -1,11 +1,10 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import AboutPage from "./pages/AboutPage";
 import InboundTours from "./pages/InboundTours";
 import TourDetail from "./pages/TourDetail";
-import ContactUs from "./pages/ContactUs";
 import Hotels from "./pages/Hotels";
 import HotelDetail from "./pages/HotelDetail";
 import LandOperationsPage from "./pages/LandOperationsPage";
@@ -30,7 +29,7 @@ function App() {
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogDetail />} />
           <Route path="/transfer" element={<TransferPage />} />
-          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/contact" element={<Navigate to="/about#contact" replace />} />
         </Routes>
       </main>
       <Footer />

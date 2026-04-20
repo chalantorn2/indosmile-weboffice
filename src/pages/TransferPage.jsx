@@ -174,6 +174,11 @@ export default function TransferPage() {
   const [loadingOrigins, setLoadingOrigins] = useState(false);
   const [loadingDestinations, setLoadingDestinations] = useState(false);
 
+  /* ─── Vehicle/price state ─── */
+  const [vehicles, setVehicles] = useState([]);
+  const [loadingVehicles, setLoadingVehicles] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+
   /* Fetch origins from API */
   const fetchOrigins = useCallback(async () => {
     if (origins.length > 0) return;
@@ -209,6 +214,38 @@ export default function TransferPage() {
     }
   }, []);
 
+  /* Fetch available vehicles + prices once both pickup and dropoff are set */
+  const fetchVehicles = useCallback(async (origin, destination) => {
+    if (!origin || !destination) {
+      setVehicles([]);
+      setSelectedVehicle(null);
+      return;
+    }
+    setLoadingVehicles(true);
+    try {
+      const res = await fetch(
+        `${API_BASE}/transfers.php?action=options&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`
+      );
+      const data = await res.json();
+      const list = Array.isArray(data.data) ? data.data : [];
+      setVehicles(list);
+      setSelectedVehicle(null);
+    } catch (err) {
+      console.error("Failed to fetch vehicles:", err);
+      setVehicles([]);
+    } finally {
+      setLoadingVehicles(false);
+    }
+  }, []);
+
+  /* Re-fetch vehicles whenever pickup or dropoff changes */
+  useEffect(() => {
+    fetchVehicles(pickup, dropoff);
+  }, [pickup, dropoff, fetchVehicles]);
+
+  const formatPrice = (price) =>
+    new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Number(price));
+
   /* Close passengers dropdown on outside click */
   useEffect(() => {
     const handler = (e) => {
@@ -236,6 +273,12 @@ export default function TransferPage() {
     setSubmitting(true);
     setSubmitResult(null);
 
+    // Prefix special_requests with selected vehicle info so it shows in admin/email
+    const vehicleNote = selectedVehicle
+      ? `Vehicle: ${selectedVehicle.vehicle_name} — ${formatPrice(selectedVehicle.price)} THB`
+      : null;
+    const combinedRequests = [vehicleNote, specialRequests].filter(Boolean).join('\n');
+
     try {
       const response = await fetch(`${API_BASE}/transfers.php?action=book`, {
         method: 'POST',
@@ -254,7 +297,7 @@ export default function TransferPage() {
           adults,
           children,
           infants,
-          special_requests: specialRequests || null,
+          special_requests: combinedRequests || null,
         }),
       });
 
@@ -552,12 +595,87 @@ export default function TransferPage() {
                   )}
                 </div>
 
+                {/* Vehicle picker — appears once both pickup + dropoff are chosen */}
+                {pickup && dropoff && (
+                  <div className="border-t border-gray-100 pt-4">
+                    <label className="block font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      Available Vehicles
+                    </label>
+                    {loadingVehicles ? (
+                      <div className="flex items-center justify-center py-6">
+                        <svg className="w-5 h-5 animate-spin text-navy/40" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      </div>
+                    ) : vehicles.length === 0 ? (
+                      <p className="font-body text-xs text-gray-400 text-center py-3">
+                        No vehicles available for this route. Please contact us directly.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {vehicles.map((v) => {
+                          const isSelected = selectedVehicle?.vehicle_id === v.vehicle_id;
+                          return (
+                            <button
+                              key={v.vehicle_id}
+                              type="button"
+                              onClick={() => setSelectedVehicle(v)}
+                              className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                                isSelected
+                                  ? "border-navy bg-navy/5"
+                                  : "border-gray-200 hover:border-navy/40 hover:bg-gray-50"
+                              }`}
+                            >
+                              {v.image_url ? (
+                                <img
+                                  src={v.image_url}
+                                  alt={v.vehicle_name}
+                                  className="w-16 h-12 object-cover rounded-lg flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-16 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                  <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                                  </svg>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-body text-sm font-semibold text-navy truncate">{v.vehicle_name}</p>
+                                <p className="font-body text-xs text-gray-400">
+                                  Up to {v.max_passengers} pax · {v.max_luggage ?? 0} bags
+                                </p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="font-body text-base font-bold text-navy">
+                                  ฿{formatPrice(v.price)}
+                                </p>
+                                <p className="font-body text-[10px] text-gray-400 uppercase tracking-wider">
+                                  {tripType === "return" ? "per way" : "total"}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Submit — opens modal */}
                 <button
                   type="submit"
-                  className="w-full bg-yellow text-navy py-4 rounded-xl font-body font-bold text-base hover:bg-navy hover:text-white transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+                  disabled={pickup && dropoff && vehicles.length > 0 && !selectedVehicle}
+                  className={`w-full py-4 rounded-xl font-body font-bold text-base transition-all duration-300 shadow-lg ${
+                    pickup && dropoff && vehicles.length > 0 && !selectedVehicle
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-yellow text-navy hover:bg-navy hover:text-white hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+                  }`}
                 >
-                  Request Booking
+                  {pickup && dropoff && vehicles.length > 0 && !selectedVehicle
+                    ? "Select a vehicle to continue"
+                    : "Request Booking"}
                 </button>
 
                 <p className="text-center font-body text-xs text-gray-400">
@@ -735,6 +853,16 @@ export default function TransferPage() {
                         ⏰ {returnTime}
                       </span>
                     )}
+                  </div>
+                )}
+                {selectedVehicle && (
+                  <div className="flex items-center justify-between pt-2 border-t border-navy/10 mt-2">
+                    <span className="font-body text-xs text-gray-500">
+                      🚗 {selectedVehicle.vehicle_name}
+                    </span>
+                    <span className="font-body text-sm font-bold text-navy">
+                      ฿{formatPrice(selectedVehicle.price)}
+                    </span>
                   </div>
                 )}
               </div>

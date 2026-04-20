@@ -83,7 +83,7 @@ export default function Hotels() {
   }, [searchQuery, selectedStars, selectedDestination, sortBy, allHotels]);
 
   const handleBookNow = (hotel) => {
-    navigate("/contact", { state: { subject: `Enquiry for ${hotel.name}` } });
+    navigate("/about#contact", { state: { subject: `Enquiry for ${hotel.name}` } });
   };
 
   return (
