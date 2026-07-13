@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Secrets
+backend/config/secrets.php
+backend/config/config-backup.php
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

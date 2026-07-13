@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function Hero() {
   return (
     <section
@@ -39,18 +41,18 @@ export default function Hero() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-6 justify-center w-full">
-            <a
-              href="#contact"
+            <Link
+              to="/inbound"
               className="inline-block bg-yellow text-navy px-10 py-4 rounded-xl font-body font-bold text-center hover:bg-white hover:text-navy hover:-translate-y-1 transition-all duration-300 shadow-xl"
             >
               Plan Your Trip
-            </a>
-            <a
-              href="#about"
+            </Link>
+            <Link
+              to="/about#contact"
               className="inline-block bg-white/10 backdrop-blur-md border border-white/30 text-white px-10 py-4 rounded-xl font-body font-bold text-center hover:bg-white/20 hover:text-white transition-all duration-300"
             >
-              Download Company Profile
-            </a>
+              Contact Us
+            </Link>
           </div>
         </div>
       </div>

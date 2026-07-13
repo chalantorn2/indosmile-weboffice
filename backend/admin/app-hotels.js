@@ -5,24 +5,26 @@ let hotels = [];
 let hotelGalleryImages = []; // {image_url, category, caption, sort_order}
 const PRESET_CATEGORIES = ['Exterior', 'Lobby', 'Bedroom', 'Bathroom', 'Restaurant', 'Pool', 'Spa', 'Gym', 'View'];
 let selectedGalleryIndexes = new Set();
+let hotelsCurrentPage = 1;
+const hotelsPerPage = 20;
 
 async function loadHotels() {
     try {
-        const response = await fetch(`${API_BASE}/hotels.php?active=`, {
+        const response = await fetch(`${API_BASE}/hotels.php?active=&page=${hotelsCurrentPage}&limit=${hotelsPerPage}`, {
             credentials: 'include'
         });
         const data = await response.json();
 
         if (data.success) {
             hotels = data.data.items || [];
-            displayHotels(hotels);
+            displayHotels(hotels, data.data.pagination || {});
         }
     } catch (error) {
         console.error('Error loading hotels:', error);
     }
 }
 
-function displayHotels(hotels) {
+function displayHotels(hotels, pagination = {}) {
     const container = document.getElementById('hotelsTable');
 
     if (!hotels || hotels.length === 0) {
@@ -30,10 +32,14 @@ function displayHotels(hotels) {
         return;
     }
 
-    container.innerHTML = `
+    // Running number continues across pages
+    const startIndex = ((pagination.current_page || hotelsCurrentPage) - 1) * hotelsPerPage;
+
+    let html = `
         <table>
             <thead>
                 <tr>
+                    <th style="width:36px"></th>
                     <th>Image</th>
                     <th>Name</th>
                     <th>Destination</th>
@@ -44,8 +50,9 @@ function displayHotels(hotels) {
                 </tr>
             </thead>
             <tbody>
-                ${hotels.map(hotel => `
+                ${hotels.map((hotel, index) => `
                     <tr>
+                        <td class="text-gray-400">${startIndex + index + 1}</td>
                         <td>
                             ${hotel.main_image
                                 ? `<img src="${hotel.main_image}" alt="${hotel.name}" class="tour-thumb" onerror="this.style.display='none'">`
@@ -68,6 +75,22 @@ function displayHotels(hotels) {
             </tbody>
         </table>
     `;
+
+    if (pagination.total_pages > 1) {
+        html += `<div class="pagination">
+            <button onclick="hotelsGoToPage(${pagination.current_page - 1})" ${!pagination.has_prev ? 'disabled' : ''}>← Prev</button>
+            <span>Page ${pagination.current_page} of ${pagination.total_pages} (${pagination.total_items} hotels)</span>
+            <button onclick="hotelsGoToPage(${pagination.current_page + 1})" ${!pagination.has_next ? 'disabled' : ''}>Next →</button>
+        </div>`;
+    }
+
+    container.innerHTML = html;
+}
+
+function hotelsGoToPage(page) {
+    if (page < 1) return;
+    hotelsCurrentPage = page;
+    loadHotels();
 }
 
 function openHotelModal(hotelId = null) {

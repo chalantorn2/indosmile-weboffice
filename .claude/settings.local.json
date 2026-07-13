@@ -3,7 +3,8 @@
     "allow": [
       "Bash(dir:*)",
       "Bash(findstr:*)",
-      "WebFetch(domain:www.bookingwindow.com)"
+      "WebFetch(domain:www.bookingwindow.com)",
+      "WebFetch(domain:indosmilesouthservices.com)"
     ],
     "deny": [],
     "ask": []

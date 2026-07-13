@@ -16,7 +16,7 @@ export default function Footer() {
   const quickLinks = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
-    { name: "One Day Trip", path: "/inbound" },
+    { name: "Island Tours", path: "/inbound" },
     { name: "Transfer", path: "/transfer" },
   ];
 
@@ -61,7 +61,7 @@ export default function Footer() {
 
   // Filter out socials with no link
   const activeSocials = socialLinks.filter(
-    (s) => s.href && s.href !== "#" && s.href.length > 1
+    (s) => s.href && s.href !== "#" && s.href.length > 1,
   );
 
   const contactEmail =
@@ -115,7 +115,12 @@ export default function Footer() {
                 const trimmed = phoneStr.trim();
                 if (!trimmed) return null;
                 return (
-                  <p key={`phone-${idx}`} className="font-body text-gray-300 text-sm">{trimmed}</p>
+                  <p
+                    key={`phone-${idx}`}
+                    className="font-body text-gray-300 text-sm"
+                  >
+                    {trimmed}
+                  </p>
                 );
               })}
               <p className="font-body text-gray-300 text-sm">{contactEmail}</p>

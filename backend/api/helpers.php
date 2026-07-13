@@ -124,7 +124,7 @@ function validateRequired($data, $requiredFields)
     $missing = [];
 
     foreach ($requiredFields as $field) {
-        if (!isset($data[$field]) || empty(trim($data[$field]))) {
+        if (!isset($data[$field]) || $data[$field] === '' || $data[$field] === null || (is_string($data[$field]) && trim($data[$field]) === '')) {
             $missing[] = $field;
         }
     }
@@ -133,7 +133,9 @@ function validateRequired($data, $requiredFields)
 }
 
 /**
- * Sanitize input
+ * Sanitize plain-text input.
+ * Stores raw text in DB. Output-side escaping is React's job for JSX,
+ * and sanitizeHtml() for rich-text fields rendered via dangerouslySetInnerHTML.
  */
 function sanitizeInput($data)
 {
@@ -141,7 +143,39 @@ function sanitizeInput($data)
         return array_map('sanitizeInput', $data);
     }
 
-    return htmlspecialchars(strip_tags(trim($data)), ENT_QUOTES, 'UTF-8');
+    if ($data === null) {
+        return null;
+    }
+
+    return trim((string)$data);
+}
+
+/**
+ * Sanitize rich HTML input (blog content, etc.) with a tag/attribute allowlist.
+ * Strips <script>, <style>, event handlers, javascript: URLs.
+ */
+function sanitizeHtml($html)
+{
+    if ($html === null || $html === '') {
+        return $html;
+    }
+
+    $allowedTags = '<p><br><strong><b><em><i><u><s><a><img><ul><ol><li><h1><h2><h3><h4><h5><h6><blockquote><pre><code><hr><table><thead><tbody><tr><th><td><span><div><figure><figcaption>';
+
+    $html = preg_replace('#<script\b[^>]*>.*?</script>#is', '', $html);
+    $html = preg_replace('#<style\b[^>]*>.*?</style>#is', '', $html);
+    $html = preg_replace('#<iframe\b[^>]*>.*?</iframe>#is', '', $html);
+
+    $html = strip_tags($html, $allowedTags);
+
+    $html = preg_replace('#\son[a-z]+\s*=\s*"[^"]*"#i', '', $html);
+    $html = preg_replace("#\son[a-z]+\s*=\s*'[^']*'#i", '', $html);
+    $html = preg_replace('#\son[a-z]+\s*=\s*[^\s>]+#i', '', $html);
+
+    $html = preg_replace('#(href|src)\s*=\s*"\s*javascript:[^"]*"#i', '$1="#"', $html);
+    $html = preg_replace("#(href|src)\s*=\s*'\s*javascript:[^']*'#i", "$1='#'", $html);
+
+    return $html;
 }
 
 /**
@@ -242,6 +276,78 @@ function uploadImage($file, $subdir = 'tours')
     }
 
     return ['success' => false, 'message' => 'Failed to move uploaded file'];
+}
+
+/**
+ * Download a remote image into the local uploads dir and return its public URL.
+ * Used when importing tours from the Contract Rate API so we don't hotlink their files.
+ */
+function downloadImageToUploads($url, $subdir = 'tours')
+{
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return ['success' => false, 'message' => 'Invalid URL'];
+    }
+
+    $host = parse_url($url, PHP_URL_HOST);
+    $allowedHost = parse_url(CONTRACT_RATE_API_BASE, PHP_URL_HOST);
+    if ($host !== $allowedHost) {
+        return ['success' => false, 'message' => 'URL host not allowed'];
+    }
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_MAXFILESIZE => UPLOAD_MAX_SIZE,
+    ]);
+    $body = curl_exec($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $mime = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    curl_close($ch);
+
+    if ($body === false || $status !== 200) {
+        return ['success' => false, 'message' => 'Download failed (HTTP ' . $status . ')'];
+    }
+
+    if (strlen($body) > UPLOAD_MAX_SIZE) {
+        return ['success' => false, 'message' => 'File size exceeds limit'];
+    }
+
+    $mime = trim(explode(';', (string)$mime)[0]);
+    $allowedTypes = unserialize(ALLOWED_IMAGE_TYPES_ARRAY);
+    if (!in_array($mime, $allowedTypes)) {
+        return ['success' => false, 'message' => 'Invalid file type: ' . $mime];
+    }
+
+    $uploadDir = UPLOAD_DIR . $subdir . '/';
+    if (!file_exists($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    $extension = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
+    if (!preg_match('/^(jpg|jpeg|png|gif|webp)$/', $extension)) {
+        $extension = 'jpg';
+    }
+    $filename = uniqid() . '_' . time() . '.' . $extension;
+
+    if (file_put_contents($uploadDir . $filename, $body) === false) {
+        return ['success' => false, 'message' => 'Failed to save file'];
+    }
+
+    return ['success' => true, 'url' => '/backend/uploads/' . $subdir . '/' . $filename];
+}
+
+/**
+ * Cast an optional money input to a float, keeping "not set" and "" as NULL so an
+ * empty form field does not become 0.00.
+ */
+function parseOptionalDecimal($value)
+{
+    if ($value === null || $value === '' || !is_numeric($value)) {
+        return null;
+    }
+    return (float)$value;
 }
 
 /**

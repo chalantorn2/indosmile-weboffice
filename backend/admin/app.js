@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Setup Event Listeners
 function setupEventListeners() {
+    console.log('[DEBUG] setupEventListeners START');
     // Login Form
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
 
@@ -55,10 +56,62 @@ function setupEventListeners() {
     document.getElementById('addTourBtn').addEventListener('click', () => openTourModal());
     document.getElementById('tourForm').addEventListener('submit', handleTourSubmit);
 
-    // Modal Close
+    // Shows & Adventures Actions
+    document.getElementById('addShowBtn').addEventListener('click', () => openShowModal());
+    document.getElementById('showForm').addEventListener('submit', handleShowSubmit);
+    setupAutocomplete('shDestination');
+
+    // Import from Contract Rate
+    document.getElementById('importTourBtn').addEventListener('click', () => openImportModal('tour'));
+    document.getElementById('importShowBtn').addEventListener('click', () => openImportModal('show'));
+    document.getElementById('importSearchInput').addEventListener('input', debounce(searchContractRate, 400));
+    document.getElementById('importSearchInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchContractRate();
+        }
+    });
+    document.getElementById('importBackBtn').addEventListener('click', () => showImportStep('search'));
+    document.getElementById('importContinueBtn').addEventListener('click', confirmImport);
+    document.querySelectorAll('.import-target-btn').forEach(btn => {
+        btn.addEventListener('click', () => setImportTarget(btn.dataset.importTarget));
+    });
+    document.querySelectorAll('.import-modal-close').forEach(btn => {
+        btn.addEventListener('click', () => closeModal('importModal'));
+    });
+
+    // Tours/Shows section sub-tabs
+    const sectionTabs = document.querySelectorAll('.tour-section-tab');
+    console.log('[DEBUG] tour-section-tab buttons found:', sectionTabs.length);
+    sectionTabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            console.log('[DEBUG] section tab clicked:', btn.dataset.tourSectionTab);
+            switchTourSectionTab(btn.dataset.tourSectionTab);
+        });
+    });
+
+    // Tour modal close
     document.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', () => closeModal('tourModal'));
     });
+
+    // Show modal close
+    document.querySelectorAll('.show-modal-close').forEach(btn => {
+        btn.addEventListener('click', () => closeModal('showModal'));
+    });
+
+    // Show modal tab switching
+    document.querySelectorAll('#showModalTabBar .sh-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchShowTab(btn.dataset.tab));
+    });
+
+    // Show modal dropzones
+    setupDropzone('shMainImageDropzone', 'shMainImageFile', handleShowMainImageUpload);
+    setupDropzone('shGalleryDropzone', 'shGalleryFiles', handleShowGalleryUpload);
+
+    // Show times & seat zones builders
+    document.getElementById('addShowTimeBtn').addEventListener('click', () => addShowTime());
+    document.getElementById('addSeatZoneBtn').addEventListener('click', () => addSeatZone());
 
     // Filters
     document.getElementById('statusFilter').addEventListener('change', loadBookings);
@@ -96,6 +149,34 @@ function setupEventListeners() {
     // User modal close
     document.querySelectorAll('.user-modal-close').forEach(btn => {
         btn.addEventListener('click', () => closeModal('userModal'));
+    });
+
+    // Agent Actions
+    document.getElementById('addAgentBtn').addEventListener('click', () => openAgentModal());
+    document.getElementById('agentForm').addEventListener('submit', handleAgentSubmit);
+    document.getElementById('agentPasswordCopyBtn').addEventListener('click', copyAgentPassword);
+    document.getElementById('agentCodeSuggestBtn').addEventListener('click', suggestAgentCode);
+
+    // Agent modal close
+    document.querySelectorAll('.agent-modal-close').forEach(btn => {
+        btn.addEventListener('click', () => closeModal('agentModal'));
+    });
+    document.querySelectorAll('.agent-detail-modal-close').forEach(btn => {
+        btn.addEventListener('click', () => closeModal('agentDetailModal'));
+    });
+    document.querySelectorAll('.agent-password-modal-close').forEach(btn => {
+        btn.addEventListener('click', () => closeModal('agentPasswordModal'));
+    });
+
+    // Agent contract rates
+    document.getElementById('agentRatesApplyBtn').addEventListener('click', applyAgentRates);
+    document.getElementById('agentRatesRemoveBtn').addEventListener('click', removeAgentRates);
+    document.getElementById('agentRatesSearch').addEventListener('input', debounce(renderAgentRates, 250));
+    document.querySelectorAll('.agent-rates-filter').forEach(btn => {
+        btn.addEventListener('click', () => setAgentRatesFilter(btn.dataset.filter));
+    });
+    document.querySelectorAll('.agent-rates-modal-close').forEach(btn => {
+        btn.addEventListener('click', () => closeModal('agentRatesModal'));
     });
 
     // Itinerary builder
@@ -143,6 +224,7 @@ function setupEventListeners() {
     if (typeof setupSettingsUI === 'function') {
         setupSettingsUI();
     }
+    console.log('[DEBUG] setupEventListeners END (all listeners bound)');
 }
 
 // =====================
@@ -160,11 +242,13 @@ function showDashboard() {
     document.getElementById('adminName').textContent = currentUser.full_name || currentUser.username;
     document.getElementById('adminRole').textContent = currentUser.role === 'admin' ? 'Admin' : 'Staff';
 
-    // Show/hide Users nav based on role
-    const usersNav = document.querySelector('.nav-item[data-page="users"]');
-    if (usersNav) {
-        usersNav.style.display = currentUser.role === 'admin' ? '' : 'none';
-    }
+    // Show/hide admin-only navs based on role
+    ['users', 'agents'].forEach(page => {
+        const nav = document.querySelector(`.nav-item[data-page="${page}"]`);
+        if (nav) {
+            nav.style.display = currentUser.role === 'admin' ? '' : 'none';
+        }
+    });
 
     loadTours();
 }
@@ -193,6 +277,7 @@ function handleNavigation(e) {
         'blog': 'Blog Management',
         'transfers': 'Transfer Management',
         'bookings': 'Booking Management',
+        'agents': 'Agent Management',
         'users': 'User Management',
         'settings': 'Platform Settings'
     };
@@ -204,13 +289,46 @@ function handleNavigation(e) {
     if (page === 'blog') loadBlogPosts();
     if (page === 'transfers' && typeof loadTransfers === 'function') { loadTransfers(); if (typeof loadTransferGallery === 'function') loadTransferGallery(); }
     if (page === 'bookings') loadBookings();
+    if (page === 'agents') loadAgents();
     if (page === 'users') loadUsers();
     if (page === 'settings' && typeof loadSettings === 'function') loadSettings();
+}
+
+// =====================
+// Tours / Shows section sub-tab switcher
+// =====================
+function switchTourSectionTab(section) {
+    document.querySelectorAll('.tour-section-tab').forEach(btn => {
+        const isActive = btn.dataset.tourSectionTab === section;
+        btn.classList.toggle('border-navy', isActive);
+        btn.classList.toggle('text-navy', isActive);
+        btn.classList.toggle('border-transparent', !isActive);
+        btn.classList.toggle('text-gray-500', !isActive);
+    });
+
+    const toursSection = document.getElementById('toursSection');
+    const showsSection = document.getElementById('showsSection');
+
+    if (section === 'shows') {
+        toursSection.style.display = 'none';
+        showsSection.style.display = '';
+        loadShows();
+    } else {
+        toursSection.style.display = '';
+        showsSection.style.display = 'none';
+        loadTours();
+    }
 }
 
 // Make functions globally accessible (for onclick handlers in HTML)
 window.editTour = editTour;
 window.deleteTour = deleteTour;
+window.editShow = editShow;
+window.deleteShow = deleteShow;
+window.removeShowMainImage = removeShowMainImage;
+window.removeShowGalleryImage = removeShowGalleryImage;
+window.removeShowTime = removeShowTime;
+window.removeSeatZone = removeSeatZone;
 window.confirmBooking = confirmBooking;
 window.cancelBooking = cancelBooking;
 window.removeItineraryDay = removeItineraryDay;
@@ -234,6 +352,13 @@ window.updateRoomBarTitle = updateRoomBarTitle;
 window.removeRoomType = removeRoomType;
 window.editUser = editUser;
 window.deleteUser = deleteUser;
+window.viewAgent = viewAgent;
+window.editAgent = editAgent;
+window.deleteAgent = deleteAgent;
+window.generateAgentPassword = generateAgentPassword;
+window.openAgentRates = openAgentRates;
+window.toggleAgentRateRow = toggleAgentRateRow;
+window.toggleAgentRatesAll = toggleAgentRatesAll;
 window.editBlogPost = editBlogPost;
 window.deleteBlogPost = deleteBlogPost;
 window.removeBlogCover = removeBlogCover;

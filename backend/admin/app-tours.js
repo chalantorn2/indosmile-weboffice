@@ -1,12 +1,12 @@
 // =====================
-// Tours
+// Tours (Island Tours only — Shows & Adventures live in app-shows.js)
 // =====================
 let tours = [];
 let cachedDestinations = null;
 
 async function loadTours() {
     try {
-        const response = await fetch(`${API_BASE}/tours.php?active=`, {
+        const response = await fetch(`${API_BASE}/tours.php?type=inbound&active=`, {
             credentials: 'include'
         });
         const data = await response.json();
@@ -24,7 +24,7 @@ function displayTours(tours) {
     const container = document.getElementById('toursTable');
 
     if (!tours || tours.length === 0) {
-        container.innerHTML = '<p>No tours found. Click "+ Add New Tour" to create one.</p>';
+        container.innerHTML = `<p>No island tours found. Click "+ Add New Island Tour" to create one.</p>`;
         return;
     }
 
@@ -87,15 +87,19 @@ function openTourModal(tourId = null) {
     const subtitle = document.getElementById('modalSubtitle');
 
     if (tourId) {
-        title.textContent = 'Edit Tour';
-        if (subtitle) subtitle.textContent = 'Update the tour package details';
         const tour = tours.find(t => t.id == tourId);
+        title.textContent = 'Edit Island Tour';
+        if (subtitle) subtitle.textContent = 'Update the island tour details';
         if (tour) {
             document.getElementById('tourId').value = tour.id;
+            document.getElementById('tourType').value = tour.type || 'inbound';
             document.getElementById('tourName').value = tour.name || '';
             document.getElementById('tourDestination').value = tour.destination || '';
             document.getElementById('tourAdultPrice').value = tour.adult_price || '';
             document.getElementById('tourChildPrice').value = tour.child_price || '';
+            document.getElementById('tourParkFeeIncluded').checked = Number(tour.park_fee_included) === 1;
+            document.getElementById('tourParkFeeAdult').value = tour.park_fee_adult || '';
+            document.getElementById('tourParkFeeChild').value = tour.park_fee_child || '';
             document.getElementById('tourDurationDays').value = tour.duration_days || '';
             document.getElementById('tourDurationNights').value = tour.duration_nights || '';
             document.getElementById('tourDescription').value = tour.description || '';
@@ -145,9 +149,10 @@ function openTourModal(tourId = null) {
             document.getElementById('tourImportantNotes').value = tour.important_notes || '';
         }
     } else {
-        title.textContent = 'Add New Tour';
-        if (subtitle) subtitle.textContent = 'Fill in the details to create a tour package';
+        title.textContent = 'Add New Island Tour';
+        if (subtitle) subtitle.textContent = 'Fill in the details to create an island tour';
         document.getElementById('tourId').value = '';
+        document.getElementById('tourType').value = 'inbound';
         document.getElementById('tourActive').checked = true;
     }
 
@@ -189,9 +194,12 @@ async function handleTourSubmit(e) {
     const tourData = {
         name: document.getElementById('tourName').value,
         destination: document.getElementById('tourDestination').value,
-        type: 'inbound',
+        type: document.getElementById('tourType').value || 'inbound',
         adult_price: adultPrice,
         child_price: childPrice,
+        park_fee_included: document.getElementById('tourParkFeeIncluded').checked ? 1 : 0,
+        park_fee_adult: parseFloat(document.getElementById('tourParkFeeAdult').value) || null,
+        park_fee_child: parseFloat(document.getElementById('tourParkFeeChild').value) || null,
         duration_days: durationDays,
         duration_nights: durationDays === 1 ? 0 : durationNights,
         duration_label: durationDays === 1 ? 'One Day Trip' : `${durationDays} Days / ${durationNights} Nights`,
@@ -229,7 +237,10 @@ async function handleTourSubmit(e) {
         what_to_bring: document.getElementById('tourWhatToBring').value
             ? document.getElementById('tourWhatToBring').value.split('\n').map(i => i.trim()).filter(i => i)
             : null,
-        important_notes: document.getElementById('tourImportantNotes').value || null
+        important_notes: document.getElementById('tourImportantNotes').value || null,
+        // Set only when this tour came in via the Contract Rate importer
+        source_tour_id: parseInt(document.getElementById('tourSourceId').value) || null,
+        source_supplier_name: document.getElementById('tourSourceSupplier').value || null
     };
 
     try {
@@ -334,9 +345,12 @@ function removeMainImage(e) {
 // =====================
 let galleryUrls = [];
 
+// Roomy enough to hold a full Contract Rate import (see app-import.js)
+const GALLERY_MAX = 30;
+
 async function handleGalleryUpload(files) {
-    if (galleryUrls.length + files.length > 10) {
-        showToast('Maximum 10 gallery images allowed.', 'warning');
+    if (galleryUrls.length + files.length > GALLERY_MAX) {
+        showToast(`Maximum ${GALLERY_MAX} gallery images allowed.`, 'warning');
         return;
     }
 
@@ -464,7 +478,7 @@ function updateGalleryPlaceholder() {
     const placeholder = document.getElementById('galleryPlaceholder');
     placeholder.style.display = galleryUrls.length === 0 ? '' : 'none';
     const countEl = document.getElementById('galleryCount');
-    if (countEl) countEl.textContent = galleryUrls.length + ' / 10 images';
+    if (countEl) countEl.textContent = galleryUrls.length + ' / ' + GALLERY_MAX + ' images';
     updateTabDots();
 }
 

@@ -196,23 +196,25 @@ class Tour {
         $query = "INSERT INTO {$this->table} (
             name, slug, destination, type, description, short_description,
             duration_days, duration_nights, duration_label, adult_price, child_price,
+            park_fee_included, park_fee_adult, park_fee_child,
             currency, rating, review_count, is_featured, is_active,
             max_participants, min_participants, difficulty_level,
             main_image, gallery_images, highlights, included, not_included,
             itinerary, terms_conditions, cancellation_policy,
             pickup_time, pickup_location, dropoff_time, dropoff_location,
             departure_times, meal_info, transfer_info, what_to_bring, important_notes,
-            created_by
+            created_by, source_tour_id, source_supplier_name
         ) VALUES (
             :name, :slug, :destination, :type, :description, :short_description,
             :duration_days, :duration_nights, :duration_label, :adult_price, :child_price,
+            :park_fee_included, :park_fee_adult, :park_fee_child,
             :currency, :rating, :review_count, :is_featured, :is_active,
             :max_participants, :min_participants, :difficulty_level,
             :main_image, :gallery_images, :highlights, :included, :not_included,
             :itinerary, :terms_conditions, :cancellation_policy,
             :pickup_time, :pickup_location, :dropoff_time, :dropoff_location,
             :departure_times, :meal_info, :transfer_info, :what_to_bring, :important_notes,
-            :created_by
+            :created_by, :source_tour_id, :source_supplier_name
         )";
 
         $stmt = $this->conn->prepare($query);
@@ -232,6 +234,9 @@ class Tour {
         $stmt->bindParam(':duration_label', $data['duration_label']);
         $stmt->bindParam(':adult_price', $data['adult_price']);
         $stmt->bindParam(':child_price', $data['child_price']);
+        $stmt->bindParam(':park_fee_included', $data['park_fee_included'], PDO::PARAM_INT);
+        $stmt->bindParam(':park_fee_adult', $data['park_fee_adult']);
+        $stmt->bindParam(':park_fee_child', $data['park_fee_child']);
         $stmt->bindParam(':currency', $data['currency']);
         $stmt->bindParam(':rating', $data['rating']);
         $stmt->bindParam(':review_count', $data['review_count'], PDO::PARAM_INT);
@@ -258,12 +263,25 @@ class Tour {
         $stmt->bindParam(':what_to_bring', $data['what_to_bring']);
         $stmt->bindParam(':important_notes', $data['important_notes']);
         $stmt->bindParam(':created_by', $data['created_by'], PDO::PARAM_INT);
+        $stmt->bindParam(':source_tour_id', $data['source_tour_id'], PDO::PARAM_INT);
+        $stmt->bindParam(':source_supplier_name', $data['source_supplier_name']);
 
         if ($stmt->execute()) {
             return $this->conn->lastInsertId();
         }
 
         return false;
+    }
+
+    /**
+     * Find a tour previously imported from the given Contract Rate source tour.
+     */
+    public function getBySourceTourId($sourceTourId) {
+        $query = "SELECT * FROM {$this->table} WHERE source_tour_id = :source_tour_id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':source_tour_id', $sourceTourId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -282,6 +300,9 @@ class Tour {
             duration_label = :duration_label,
             adult_price = :adult_price,
             child_price = :child_price,
+            park_fee_included = :park_fee_included,
+            park_fee_adult = :park_fee_adult,
+            park_fee_child = :park_fee_child,
             currency = :currency,
             rating = :rating,
             review_count = :review_count,
@@ -324,6 +345,9 @@ class Tour {
         $stmt->bindParam(':duration_label', $data['duration_label']);
         $stmt->bindParam(':adult_price', $data['adult_price']);
         $stmt->bindParam(':child_price', $data['child_price']);
+        $stmt->bindParam(':park_fee_included', $data['park_fee_included'], PDO::PARAM_INT);
+        $stmt->bindParam(':park_fee_adult', $data['park_fee_adult']);
+        $stmt->bindParam(':park_fee_child', $data['park_fee_child']);
         $stmt->bindParam(':currency', $data['currency']);
         $stmt->bindParam(':rating', $data['rating']);
         $stmt->bindParam(':review_count', $data['review_count'], PDO::PARAM_INT);

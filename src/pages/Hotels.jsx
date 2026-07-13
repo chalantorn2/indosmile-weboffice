@@ -12,31 +12,45 @@ export default function Hotels() {
   const [allHotels, setAllHotels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 9;
 
   useEffect(() => {
     fetchHotels();
   }, []);
 
+  const mapHotel = (hotel) => ({
+    id: hotel.id,
+    image: hotel.main_image || "",
+    name: hotel.name,
+    destination: hotel.destination,
+    description: hotel.short_description || hotel.description,
+    stars: parseInt(hotel.stars) || 4,
+    rating: parseFloat(hotel.rating) || 0,
+    reviews: hotel.review_count || 0,
+    amenities: hotel.amenities || [],
+  });
+
   const fetchHotels = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/hotels.php?active=1`);
-      if (!response.ok) throw new Error('Failed to fetch');
-      const data = await response.json();
-      if (data.success) {
-        const hotels = (data.data.items || []).map(hotel => ({
-          id: hotel.id,
-          image: hotel.main_image || "",
-          name: hotel.name,
-          destination: hotel.destination,
-          description: hotel.short_description || hotel.description,
-          stars: parseInt(hotel.stars) || 4,
-          rating: parseFloat(hotel.rating) || 0,
-          reviews: hotel.review_count || 0,
-          amenities: hotel.amenities || [],
-        }));
-        setAllHotels(hotels);
-      }
+      setError(null);
+      const FETCH_LIMIT = 100;
+      let page = 1;
+      let collected = [];
+      let totalPages = 1;
+
+      do {
+        const response = await fetch(`${API_BASE}/hotels.php?active=1&limit=${FETCH_LIMIT}&page=${page}`);
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        if (!data.success) throw new Error('Failed to fetch');
+        collected = collected.concat((data.data.items || []).map(mapHotel));
+        totalPages = data.data.pagination?.total_pages || 1;
+        page++;
+      } while (page <= totalPages);
+
+      setAllHotels(collected);
     } catch (err) {
       console.error('Error fetching hotels:', err);
       setError('Failed to load hotels');
@@ -81,6 +95,22 @@ export default function Hotels() {
 
     return sorted;
   }, [searchQuery, selectedStars, selectedDestination, sortBy, allHotels]);
+
+  // Reset to first page whenever filters/sort change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStars, selectedDestination, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedHotels.length / PAGE_SIZE));
+  const paginatedHotels = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredAndSortedHotels.slice(start, start + PAGE_SIZE);
+  }, [filteredAndSortedHotels, currentPage]);
+
+  const goToPage = (page) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleBookNow = (hotel) => {
     navigate("/about#contact", { state: { subject: `Enquiry for ${hotel.name}` } });
@@ -200,8 +230,9 @@ export default function Hotels() {
             </div>
 
             {filteredAndSortedHotels.length > 0 ? (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredAndSortedHotels.map((hotel) => (
+                {paginatedHotels.map((hotel) => (
                   <div key={hotel.id} onClick={() => navigate(`/hotels/${hotel.id}`)} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-400 group cursor-pointer">
                     <div className="relative h-64 overflow-hidden">
                       <img
@@ -254,6 +285,44 @@ export default function Hotels() {
                   </div>
                 ))}
               </div>
+
+              {totalPages > 1 && (
+                <div className="mt-12 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2.5 rounded-xl font-body font-semibold border border-gray-200 bg-white text-navy hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Prev
+                  </button>
+
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const page = i + 1;
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => goToPage(page)}
+                        className={`w-11 h-11 rounded-xl font-body font-semibold transition-colors ${
+                          page === currentPage
+                            ? "bg-yellow text-navy"
+                            : "bg-white text-navy border border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2.5 rounded-xl font-body font-semibold border border-gray-200 bg-white text-navy hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+              </>
             ) : (
               <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
                 <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

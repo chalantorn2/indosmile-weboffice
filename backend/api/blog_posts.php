@@ -172,7 +172,7 @@ function handlePostRequest($postModel) {
         'slug' => isset($input['slug']) && !empty($input['slug']) ? sanitizeInput($input['slug']) : generateSlug($input['title']),
         'category_id' => isset($input['category_id']) && !empty($input['category_id']) ? (int)$input['category_id'] : null,
         'excerpt' => isset($input['excerpt']) ? sanitizeInput($input['excerpt']) : null,
-        'content' => $input['content'],  // Allow HTML content
+        'content' => sanitizeHtml($input['content']),
         'cover_image' => isset($input['cover_image']) ? $input['cover_image'] : null,
         'gallery_images' => isset($input['gallery_images']) ? json_encode($input['gallery_images']) : null,
         'tags' => isset($input['tags']) ? json_encode($input['tags']) : null,
@@ -233,7 +233,7 @@ function handlePutRequest($postModel) {
         'slug' => isset($input['slug']) && !empty($input['slug']) ? sanitizeInput($input['slug']) : $existing['slug'],
         'category_id' => isset($input['category_id']) ? ($input['category_id'] ? (int)$input['category_id'] : null) : $existing['category_id'],
         'excerpt' => isset($input['excerpt']) ? sanitizeInput($input['excerpt']) : $existing['excerpt'],
-        'content' => isset($input['content']) ? $input['content'] : $existing['content'],
+        'content' => isset($input['content']) ? sanitizeHtml($input['content']) : $existing['content'],
         'cover_image' => isset($input['cover_image']) ? $input['cover_image'] : $existing['cover_image'],
         'gallery_images' => isset($input['gallery_images']) ? json_encode($input['gallery_images']) : $existing['gallery_images'],
         'tags' => isset($input['tags']) ? json_encode($input['tags']) : $existing['tags'],

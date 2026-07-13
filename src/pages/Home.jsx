@@ -13,7 +13,7 @@ export default function Home() {
       <FeaturedTours />
       <WhyChooseUs />
       <AboutSection />
-      <ContactStrip />
+      {/* <ContactStrip /> */}
     </>
   );
 }

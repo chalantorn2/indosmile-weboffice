@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS `tours` (
   `name` VARCHAR(200) NOT NULL,
   `slug` VARCHAR(250) NOT NULL UNIQUE,
   `destination` VARCHAR(100) NOT NULL,
-  `type` ENUM('inbound', 'outbound', 'incentive') DEFAULT 'inbound',
+  `type` ENUM('inbound', 'outbound', 'incentive', 'shows') DEFAULT 'inbound',
   `description` TEXT NOT NULL,
   `short_description` VARCHAR(500) NULL,
   `duration_days` INT(11) NOT NULL,

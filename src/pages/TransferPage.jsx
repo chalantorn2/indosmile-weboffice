@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import DatePicker from "../components/DatePicker";
+import TimePicker from "../components/TimePicker";
 
 const API_BASE = "/backend/api";
 
@@ -438,7 +440,7 @@ export default function TransferPage() {
                 <div className="grid grid-cols-2 gap-1 bg-gray-100 rounded-xl p-1">
                   {[
                     { value: "one-way", label: "One Way" },
-                    { value: "return", label: "Return" },
+                    { value: "return", label: "Round Trip" },
                   ].map((opt) => (
                     <button
                       key={opt.value}
@@ -499,60 +501,47 @@ export default function TransferPage() {
 
                 {/* Date & Time */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                      Pick-up Date
-                    </label>
-                    <input
-                      type="date"
-                      value={pickupDate}
-                      onChange={(e) => setPickupDate(e.target.value)}
-                      required
-                      min={new Date().toISOString().split("T")[0]}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy transition-all text-navy"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                      Pick-up Time
-                    </label>
-                    <input
-                      type="time"
-                      value={pickupTime}
-                      onChange={(e) => setPickupTime(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy transition-all text-navy"
-                    />
-                  </div>
+                  <DatePicker
+                    value={pickupDate}
+                    onChange={setPickupDate}
+                    required
+                    label="Pick-up Date"
+                    labelClassName="block font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5"
+                    placeholder="DD MMM YYYY"
+                    inputClassName="w-full flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl font-body text-sm text-left hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy transition-all"
+                  />
+                  <TimePicker
+                    value={pickupTime}
+                    onChange={setPickupTime}
+                    required
+                    label="Pick-up Time"
+                    labelClassName="block font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5"
+                    placeholder="HH : MM"
+                    inputClassName="w-full flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl font-body text-sm text-left hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy transition-all"
+                  />
                 </div>
 
                 {/* Return Date & Time — only when Return is selected */}
                 {tripType === 'return' && (
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                        Return Date
-                      </label>
-                      <input
-                        type="date"
-                        value={returnDate}
-                        onChange={(e) => setReturnDate(e.target.value)}
-                        required
-                        min={pickupDate || new Date().toISOString().split("T")[0]}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy transition-all text-navy"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                        Return Time
-                      </label>
-                      <input
-                        type="time"
-                        value={returnTime}
-                        onChange={(e) => setReturnTime(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl font-body text-sm focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy transition-all text-navy"
-                      />
-                    </div>
+                    <DatePicker
+                      value={returnDate}
+                      onChange={setReturnDate}
+                      required
+                      label="Return Date"
+                      labelClassName="block font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5"
+                      placeholder="DD MMM YYYY"
+                      minDate={pickupDate ? new Date(pickupDate + "T00:00:00") : new Date()}
+                      inputClassName="w-full flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl font-body text-sm text-left hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy transition-all"
+                    />
+                    <TimePicker
+                      value={returnTime}
+                      onChange={setReturnTime}
+                      label="Return Time"
+                      labelClassName="block font-body text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5"
+                      placeholder="HH : MM"
+                      inputClassName="w-full flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl font-body text-sm text-left hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy transition-all"
+                    />
                   </div>
                 )}
 
@@ -675,7 +664,7 @@ export default function TransferPage() {
                 >
                   {pickup && dropoff && vehicles.length > 0 && !selectedVehicle
                     ? "Select a vehicle to continue"
-                    : "Request Booking"}
+                    : "Booking Now"}
                 </button>
 
                 <p className="text-center font-body text-xs text-gray-400">

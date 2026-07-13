@@ -61,7 +61,9 @@ export default function AboutPage() {
         setTimeout(() => setSubmitStatus(null), 5000);
       } else {
         setSubmitStatus("error");
-        setErrorMessage(data.message || "Failed to send message. Please try again.");
+        setErrorMessage(
+          data.message || "Failed to send message. Please try again.",
+        );
       }
     } catch {
       setSubmitStatus("error");

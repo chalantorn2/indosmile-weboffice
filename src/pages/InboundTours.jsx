@@ -69,7 +69,9 @@ export default function InboundTours() {
   };
 
   const uniqueDestinations = useMemo(() => {
-    return [...new Set(allTours.map((tour) => tour.destination))].filter(Boolean).sort();
+    return [...new Set(allTours.map((tour) => tour.destination))]
+      .filter(Boolean)
+      .sort();
   }, [allTours]);
 
   // Filter and sort logic
@@ -135,7 +137,7 @@ export default function InboundTours() {
         {/* Page Header */}
         <div className="text-center mb-12">
           <h1 className="font-heading text-4xl md:text-5xl text-navy mb-4">
-            One Day Trip
+            Island Tours
           </h1>
           <p className="font-body text-lg text-gray-600 max-w-2xl mx-auto">
             Discover the best of Thailand with our carefully curated tour One

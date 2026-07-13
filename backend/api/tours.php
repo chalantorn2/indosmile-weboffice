@@ -169,6 +169,9 @@ function handlePostRequest($tourModel) {
         'duration_label' => isset($input['duration_label']) ? sanitizeInput($input['duration_label']) : null,
         'adult_price' => (float)$input['adult_price'],
         'child_price' => isset($input['child_price']) ? (float)$input['child_price'] : null,
+        'park_fee_included' => isset($input['park_fee_included']) ? (int)(bool)$input['park_fee_included'] : 0,
+        'park_fee_adult' => parseOptionalDecimal($input['park_fee_adult'] ?? null),
+        'park_fee_child' => parseOptionalDecimal($input['park_fee_child'] ?? null),
         'currency' => isset($input['currency']) ? sanitizeInput($input['currency']) : 'THB',
         'rating' => isset($input['rating']) ? (float)$input['rating'] : 0.0,
         'review_count' => isset($input['review_count']) ? (int)$input['review_count'] : 0,
@@ -194,8 +197,15 @@ function handlePostRequest($tourModel) {
         'transfer_info' => isset($input['transfer_info']) ? sanitizeInput($input['transfer_info']) : null,
         'what_to_bring' => isset($input['what_to_bring']) ? json_encode($input['what_to_bring']) : null,
         'important_notes' => isset($input['important_notes']) ? $input['important_notes'] : null,
-        'created_by' => $adminId
+        'created_by' => $adminId,
+        'source_tour_id' => isset($input['source_tour_id']) ? (int)$input['source_tour_id'] : null,
+        'source_supplier_name' => isset($input['source_supplier_name']) ? sanitizeInput($input['source_supplier_name']) : null
     ];
+
+    // A Contract Rate tour may only be imported once
+    if ($data['source_tour_id'] && $tourModel->getBySourceTourId($data['source_tour_id'])) {
+        sendError('This Contract Rate tour has already been imported', 409);
+    }
 
     // Create tour
     try {
@@ -252,6 +262,9 @@ function handlePutRequest($tourModel) {
         'duration_label' => isset($input['duration_label']) ? sanitizeInput($input['duration_label']) : $existingTour['duration_label'],
         'adult_price' => isset($input['adult_price']) ? (float)$input['adult_price'] : $existingTour['adult_price'],
         'child_price' => isset($input['child_price']) ? (float)$input['child_price'] : $existingTour['child_price'],
+        'park_fee_included' => isset($input['park_fee_included']) ? (int)(bool)$input['park_fee_included'] : (int)$existingTour['park_fee_included'],
+        'park_fee_adult' => array_key_exists('park_fee_adult', $input) ? parseOptionalDecimal($input['park_fee_adult']) : $existingTour['park_fee_adult'],
+        'park_fee_child' => array_key_exists('park_fee_child', $input) ? parseOptionalDecimal($input['park_fee_child']) : $existingTour['park_fee_child'],
         'currency' => isset($input['currency']) ? sanitizeInput($input['currency']) : $existingTour['currency'],
         'rating' => isset($input['rating']) ? (float)$input['rating'] : $existingTour['rating'],
         'review_count' => isset($input['review_count']) ? (int)$input['review_count'] : $existingTour['review_count'],
