@@ -10,8 +10,9 @@
  *   GET    agents.php/{id}/rates             every active tour + this agent's contract rate
  *   POST   agents.php                        create agent (code + password auto-generated)
  *   POST   agents.php/{id}/generate-password issue a new password
+ *   POST   agents.php/{id}/send-credentials  email the agent the password shown on screen
  *   PUT    agents.php/{id}                   update agent details
- *   PUT    agents.php/{id}/rates             apply one discount pair to a set of tours
+ *   PUT    agents.php/{id}/rates             apply one markup pair to a set of tours
  *   DELETE agents.php/{id}                   delete agent
  *   DELETE agents.php/{id}/rates             take a set of tours off the agent
  */
@@ -22,6 +23,7 @@ require_once '../config/Database.php';
 require_once '../models/Agent.php';
 require_once '../models/AgentTourRate.php';
 require_once 'helpers.php';
+require_once 'agent_emails.php';
 
 handleCORS();
 
@@ -72,6 +74,8 @@ switch ($method) {
     case 'POST':
         if ($agentId && $action === 'generate-password') {
             handleGeneratePassword($agentModel, $agentId);
+        } elseif ($agentId && $action === 'send-credentials') {
+            handleSendCredentials($agentModel, $agentId);
         } elseif (!$agentId) {
             handleCreateAgent($agentModel);
         } else {
@@ -278,6 +282,43 @@ function handleGeneratePassword($agentModel, $id) {
     ], 200, 'New password generated');
 }
 
+/**
+ * Email the agent their login details.
+ *
+ * The admin sends the password back to us because we never kept the plaintext — it only
+ * exists in the dialog shown right after create or generate-password. We check it against
+ * the stored hash first, so this endpoint can only ever mail out the agent's real current
+ * password, not arbitrary text an admin (or anyone with their session) typed in.
+ *
+ * Nothing is sent automatically on create: an account is often set up days before the
+ * partner should be let in.
+ */
+function handleSendCredentials($agentModel, $id) {
+    $agent = $agentModel->getById($id);
+
+    if (!$agent) {
+        sendError('Agent not found', 404);
+    }
+
+    $input = getJSONInput();
+
+    if (!$input || empty($input['password'])) {
+        sendError('The password is required. Generate a new one first if it is no longer on screen.', 400);
+    }
+
+    if (!$agentModel->verifyPassword($id, $input['password'])) {
+        sendError('That is no longer this agent\'s password. Generate a new one and send that instead.', 400);
+    }
+
+    if (!sendAgentCredentialsEmail($agent, $input['password'])) {
+        sendError('Could not send the email. Check the mail log and try again.', 500);
+    }
+
+    $agentModel->markCredentialsSent($id);
+
+    sendResponse($agentModel->getById($id), 200, 'Login details sent to ' . $agent['email']);
+}
+
 function handleDeleteAgent($agentModel, $id) {
     if (!$agentModel->getById($id)) {
         sendError('Agent not found', 404);
@@ -312,10 +353,10 @@ function requireTourIds($input) {
 }
 
 /**
- * A discount is money off our selling price, so it may not be negative — that would
- * quietly mark the tour *up* for the agent.
+ * A markup is money added on top of our net price, so it may not be negative — that
+ * would quietly sell the tour to the agent below what it costs us.
  */
-function requireDiscount($input, $field) {
+function requireMarkup($input, $field) {
     $value = isset($input[$field]) ? $input[$field] : 0;
 
     if (!is_numeric($value)) {
@@ -351,11 +392,11 @@ function handleSetRates($agentModel, $rateModel, $id) {
     }
 
     $tourIds = requireTourIds($input);
-    $adultDiscount = requireDiscount($input, 'adult_discount');
-    $childDiscount = requireDiscount($input, 'child_discount');
+    $adultMarkup = requireMarkup($input, 'adult_markup');
+    $childMarkup = requireMarkup($input, 'child_markup');
 
     try {
-        $count = $rateModel->setBulk($id, $tourIds, $adultDiscount, $childDiscount);
+        $count = $rateModel->setBulk($id, $tourIds, $adultMarkup, $childMarkup);
     } catch (PDOException $e) {
         sendError('Failed to save rates', 500);
     }

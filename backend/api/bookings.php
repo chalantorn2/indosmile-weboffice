@@ -11,6 +11,7 @@ require_once '../config/Database.php';
 require_once '../models/Booking.php';
 require_once '../models/Tour.php';
 require_once 'helpers.php';
+require_once 'booking_emails.php';
 
 // Handle CORS
 handleCORS();
@@ -45,7 +46,7 @@ switch ($method) {
         break;
 
     case 'PUT':
-        handlePutRequest($bookingModel);
+        handlePutRequest($bookingModel, $tourModel);
         break;
 
     case 'DELETE':
@@ -188,8 +189,8 @@ function handlePostRequest($bookingModel, $tourModel)
         if ($bookingId) {
             $booking = $bookingModel->getById($bookingId);
 
-            // Send email notification
-            sendBookingEmail($data, $tour);
+            // Notify the office, and confirm receipt to the customer.
+            sendBookingEmails($data, $tour);
 
             // Mirror the booking into the backoffice (admin web).
             // Fire-and-forget; never blocks the customer response.
@@ -212,7 +213,7 @@ function handlePostRequest($bookingModel, $tourModel)
 /**
  * Handle PUT requests (Update booking)
  */
-function handlePutRequest($bookingModel)
+function handlePutRequest($bookingModel, $tourModel)
 {
     // Admin only
     $adminId = verifyAdminSession();
@@ -230,10 +231,11 @@ function handlePutRequest($bookingModel)
         sendError('Booking not found', 404);
     }
 
-    // Get JSON input
+    // An empty body is legitimate here — `confirm` takes no arguments — so only reject
+    // input that failed to parse, not input that parsed to an empty object.
     $input = getJSONInput();
 
-    if (!$input) {
+    if (!is_array($input)) {
         sendError('Invalid JSON input', 400);
     }
 
@@ -245,6 +247,13 @@ function handlePutRequest($bookingModel)
             $result = $bookingModel->confirm($bookingId, $adminId);
             if ($result) {
                 $booking = $bookingModel->getById($bookingId);
+
+                // Confirming is what unlocks payment, so this is the moment the customer
+                // gets their Pay Now link. Skip it if they somehow already paid.
+                if ($booking['payment_status'] === 'unpaid') {
+                    sendCustomerPaymentLinkEmail($booking, $tourModel->getById($booking['tour_id']));
+                }
+
                 sendResponse($booking, 200, 'Booking confirmed successfully');
             } else {
                 sendError('Failed to confirm booking', 500);
@@ -260,6 +269,60 @@ function handlePutRequest($bookingModel)
             } else {
                 sendError('Failed to cancel booking', 500);
             }
+        }
+
+        // Customer lost the confirmation mail, or it bounced. Safe to repeat: the mail
+        // links to the status page, not to a Stripe session that could expire.
+        if ($action === 'resend_payment_link') {
+            if ($existingBooking['status'] !== 'confirmed') {
+                sendError('Confirm the booking first — that is what sends the payment link.', 409);
+            }
+            if ($existingBooking['payment_status'] === 'paid') {
+                sendError('This booking is already paid.', 409);
+            }
+
+            sendCustomerPaymentLinkEmail($existingBooking, $tourModel->getById($existingBooking['tour_id']));
+            sendResponse($existingBooking, 200, 'Payment link resent to ' . $existingBooking['customer_email']);
+        }
+
+        // Offline payment (cash, bank transfer). Card payments never come through here —
+        // those are recorded by stripe_webhook.php.
+        if ($action === 'mark_paid') {
+            if ($existingBooking['payment_status'] === 'paid') {
+                sendError('This booking is already paid.', 409);
+            }
+            if ($existingBooking['status'] === 'cancelled') {
+                sendError('This booking is cancelled.', 409);
+            }
+
+            $allowedMethods = ['cash', 'bank_transfer', 'other'];
+            $method = isset($input['payment_method']) ? sanitizeInput($input['payment_method']) : 'cash';
+            if (!in_array($method, $allowedMethods, true)) {
+                sendError('Unsupported payment method', 400);
+            }
+
+            if (!$bookingModel->markPaid($bookingId, null, $method)) {
+                sendError('Failed to mark booking as paid', 500);
+            }
+
+            // Paying settles availability too — an unconfirmed booking that has been paid
+            // for is confirmed by definition.
+            if ($existingBooking['status'] === 'pending') {
+                $bookingModel->confirm($bookingId, $adminId);
+            }
+
+            $booking = $bookingModel->getById($bookingId);
+            $tour = $tourModel->getById($booking['tour_id']);
+            $methodLabels = ['cash' => 'Cash', 'bank_transfer' => 'Bank Transfer', 'other' => 'Other'];
+
+            // The office mailbox gets a record of every payment, however it arrived —
+            // the admin who clicked this may not be the only one who needs to know.
+            sendPaymentReceiptEmail($booking, $tour, $methodLabels[$method]);
+            sendAdminPaymentEmail($booking, $tour, $methodLabels[$method]);
+
+            pushBookingToBackoffice('tour', array_merge($booking, ['tour_name' => $tour['name'] ?? null]));
+
+            sendResponse($booking, 200, 'Booking marked as paid');
         }
     }
 
@@ -294,80 +357,3 @@ function handleDeleteRequest($bookingModel)
     sendError('Deleting bookings is not allowed. Use cancel instead.', 403);
 }
 
-/**
- * Send booking notification email to admin
- */
-function sendBookingEmail($bookingData, $tour)
-{
-    $to = 'info@indosmilesouthservices.com';
-    $subject = 'New Booking from ' . $bookingData['customer_name'] . ' - ' . $tour['name'] . ' (' . $bookingData['booking_reference'] . ')';
-
-    $travelDate = date('d M Y', strtotime($bookingData['travel_date']));
-    $totalPrice = number_format($bookingData['total_price'], 0) . ' ' . ($bookingData['currency'] ?? 'THB');
-
-    $body = "
-    <html>
-    <head>
-        <style>
-            body { font-family: Arial, sans-serif; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; }
-            .header { background-color: #1B2E4A; color: #fff; padding: 20px; text-align: center; }
-            .header h1 { margin: 0; font-size: 22px; }
-            .content { padding: 20px; background-color: #f9f9f9; }
-            .info-table { width: 100%; border-collapse: collapse; }
-            .info-table td { padding: 10px 12px; border-bottom: 1px solid #e0e0e0; }
-            .info-table td:first-child { font-weight: bold; width: 40%; color: #1B2E4A; }
-            .highlight { background-color: #FFC72C; color: #1B2E4A; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; }
-            .footer { padding: 15px; text-align: center; font-size: 12px; color: #999; }
-        </style>
-    </head>
-    <body>
-        <div class='container'>
-            <div class='header'>
-                <h1>New Tour Booking</h1>
-            </div>
-            <div class='highlight'>
-                Booking Reference: {$bookingData['booking_reference']}
-            </div>
-            <div class='content'>
-                <h3 style='color: #1B2E4A;'>Customer Information</h3>
-                <table class='info-table'>
-                    <tr><td>Name</td><td>{$bookingData['customer_name']}</td></tr>
-                    <tr><td>Email</td><td>{$bookingData['customer_email']}</td></tr>
-                    <tr><td>Phone</td><td>{$bookingData['customer_phone']}</td></tr>
-                </table>
-
-                <h3 style='color: #1B2E4A; margin-top: 20px;'>Booking Details</h3>
-                <table class='info-table'>
-                    <tr><td>Tour</td><td>{$tour['name']}</td></tr>
-                    <tr><td>Destination</td><td>{$tour['destination']}</td></tr>
-                    <tr><td>Travel Date</td><td>{$travelDate}</td></tr>
-                    <tr><td>Adults</td><td>{$bookingData['adults']}</td></tr>
-                    <tr><td>Children</td><td>{$bookingData['children']}</td></tr>
-                    <tr><td>Total Guests</td><td>{$bookingData['number_of_guests']}</td></tr>
-                    <tr><td>Total Price</td><td>{$totalPrice}</td></tr>
-                </table>";
-
-    if (!empty($bookingData['special_requests'])) {
-        $body .= "
-                <h3 style='color: #1B2E4A; margin-top: 20px;'>Special Requests</h3>
-                <p style='background: #fff; padding: 12px; border-radius: 4px;'>{$bookingData['special_requests']}</p>";
-    }
-
-    $body .= "
-            </div>
-            <div class='footer'>
-                <p>This is an automated notification from Indo Smile South Services booking system.</p>
-                <p>Please log in to the admin panel to manage this booking.</p>
-            </div>
-        </div>
-    </body>
-    </html>";
-
-    $headers = "MIME-Version: 1.0\r\n";
-    $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-    $headers .= "From: Indo Smile Booking <booking@indosmilesouthservices.com>\r\n";
-    $headers .= "Reply-To: {$bookingData['customer_name']} <{$bookingData['customer_email']}>\r\n";
-
-    @mail($to, $subject, $body, $headers, '-f info@indosmilesouthservices.com');
-}

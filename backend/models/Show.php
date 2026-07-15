@@ -118,7 +118,8 @@ class Show {
     public function create($data) {
         $query = "INSERT INTO {$this->table} (
             name, slug, destination, venue, description, short_description,
-            duration_days, duration_nights, duration_label, adult_price, child_price,
+            duration_days, duration_nights, duration_label,
+            net_adult_price, net_child_price, adult_price, child_price,
             park_fee_included, park_fee_adult, park_fee_child,
             currency, rating, review_count, is_featured, is_active,
             max_participants, min_participants,
@@ -130,7 +131,8 @@ class Show {
             source_tour_id, source_supplier_name
         ) VALUES (
             :name, :slug, :destination, :venue, :description, :short_description,
-            :duration_days, :duration_nights, :duration_label, :adult_price, :child_price,
+            :duration_days, :duration_nights, :duration_label,
+            :net_adult_price, :net_child_price, :adult_price, :child_price,
             :park_fee_included, :park_fee_adult, :park_fee_child,
             :currency, :rating, :review_count, :is_featured, :is_active,
             :max_participants, :min_participants,
@@ -154,6 +156,8 @@ class Show {
         $stmt->bindParam(':duration_days', $data['duration_days'], PDO::PARAM_INT);
         $stmt->bindParam(':duration_nights', $data['duration_nights'], PDO::PARAM_INT);
         $stmt->bindParam(':duration_label', $data['duration_label']);
+        $stmt->bindParam(':net_adult_price', $data['net_adult_price']);
+        $stmt->bindParam(':net_child_price', $data['net_child_price']);
         $stmt->bindParam(':adult_price', $data['adult_price']);
         $stmt->bindParam(':child_price', $data['child_price']);
         $stmt->bindParam(':park_fee_included', $data['park_fee_included'], PDO::PARAM_INT);
@@ -216,6 +220,8 @@ class Show {
             duration_days = :duration_days,
             duration_nights = :duration_nights,
             duration_label = :duration_label,
+            net_adult_price = :net_adult_price,
+            net_child_price = :net_child_price,
             adult_price = :adult_price,
             child_price = :child_price,
             park_fee_included = :park_fee_included,
@@ -259,6 +265,8 @@ class Show {
         $stmt->bindParam(':duration_days', $data['duration_days'], PDO::PARAM_INT);
         $stmt->bindParam(':duration_nights', $data['duration_nights'], PDO::PARAM_INT);
         $stmt->bindParam(':duration_label', $data['duration_label']);
+        $stmt->bindParam(':net_adult_price', $data['net_adult_price']);
+        $stmt->bindParam(':net_child_price', $data['net_child_price']);
         $stmt->bindParam(':adult_price', $data['adult_price']);
         $stmt->bindParam(':child_price', $data['child_price']);
         $stmt->bindParam(':park_fee_included', $data['park_fee_included'], PDO::PARAM_INT);

@@ -35,8 +35,11 @@
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
-# Protect sensitive files
-<FilesMatch "^(config\.php|Database\.php|\.env)$">
+# Protect sensitive files.
+# The .log rule matters: the app writes mail.log, stripe_webhook.log and
+# intake_push.log next to the API scripts, and they contain customer emails,
+# booking references and payment ids. Without this they are world-readable.
+<FilesMatch "^(config\.php|secrets\.php|Database\.php|\.env)$|\.log$|\.sql$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>

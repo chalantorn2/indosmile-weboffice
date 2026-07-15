@@ -239,6 +239,44 @@ class Booking {
     }
 
     /**
+     * Attach the Stripe Checkout Session the customer was just sent to.
+     * Overwrites any previous session: an abandoned checkout is simply replaced.
+     */
+    public function setPaymentSession($id, $sessionId) {
+        $query = "UPDATE {$this->table} SET payment_reference = :session_id WHERE id = :id";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':session_id', $sessionId);
+
+        return $stmt->execute();
+    }
+
+    /**
+     * Mark a booking paid. Called only from the Stripe webhook.
+     *
+     * The `payment_status = 'unpaid'` guard makes this idempotent — Stripe retries
+     * webhooks, and a duplicate delivery must not re-trigger the receipt email.
+     * Returns true only for the delivery that actually flipped the row.
+     */
+    public function markPaid($id, $paymentIntentId, $method = 'stripe') {
+        $query = "UPDATE {$this->table} SET
+            payment_status = 'paid',
+            payment_method = :method,
+            payment_date = NOW(),
+            payment_intent_id = :payment_intent_id
+            WHERE id = :id AND payment_status = 'unpaid'";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':method', $method);
+        $stmt->bindParam(':payment_intent_id', $paymentIntentId);
+        $stmt->execute();
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
      * Get booking statistics
      */
     public function getStats() {

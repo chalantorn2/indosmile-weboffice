@@ -382,6 +382,145 @@ table tbody tr:hover {
     color: #010048;
 }
 
+/* Bookings table */
+.bookings-table td small {
+    display: block;
+    color: #9aa0a6;
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.bookings-table .stacked-badges .badge {
+    display: block;
+    width: fit-content;
+    margin-bottom: 4px;
+}
+
+.row-clickable {
+    cursor: pointer;
+}
+
+.row-clickable:hover {
+    background: #f8f9fb;
+}
+
+.mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+.empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: #9aa0a6;
+    font-size: 14px;
+}
+
+/* Booking detail modal */
+.detail-section {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #f0f0f3;
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.detail-heading {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9aa0a6;
+    margin-bottom: 10px;
+}
+
+.detail-row {
+    display: flex;
+    gap: 16px;
+    padding: 6px 0;
+    font-size: 14px;
+}
+
+.detail-label {
+    flex: 0 0 120px;
+    color: #6c757d;
+}
+
+.detail-value {
+    flex: 1;
+    color: #212529;
+}
+
+.detail-value a {
+    color: var(--primary-color);
+}
+
+.detail-note {
+    font-size: 14px;
+    color: #495057;
+    background: #f8f9fb;
+    border-radius: 8px;
+    padding: 12px;
+    white-space: pre-line;
+}
+
+.pagination-info {
+    margin-right: auto;
+    font-size: 13px;
+    color: #9aa0a6;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pagination-page {
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.btn-ghost {
+    background: white;
+    border: 1px solid var(--border-color);
+    color: #6c757d;
+}
+
+.btn-ghost:hover:not(:disabled) {
+    background: #f1f3f5;
+    color: var(--primary-color);
+}
+
+/* Payment status */
+.badge-pay-unpaid {
+    background: #f1f3f5;
+    color: #6c757d;
+}
+
+.badge-pay-paid {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-pay-partial {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-pay-refunded {
+    background: #f8d7da;
+    color: #721c24;
+}
+
 /* Form */
 .form-group {
     margin-bottom: 20px;

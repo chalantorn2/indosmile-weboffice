@@ -19,6 +19,9 @@ define('CONTRACT_RATE_API_KEY', '');
 // Stripe
 define('STRIPE_SECRET_KEY', '');
 define('STRIPE_PUBLISHABLE_KEY', '');
+// Signing secret (whsec_...) from the Stripe dashboard webhook endpoint.
+// Without it stripe_webhook.php rejects every event, so no booking can be marked paid.
+define('STRIPE_WEBHOOK_SECRET', '');
 
 // ChillPay PayLink
 define('CHILLPAY_MERCHANT_CODE', '');

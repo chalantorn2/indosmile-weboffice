@@ -16,6 +16,14 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('th-TH');
 }
 
+function formatDateTime(dateString) {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleString('th-TH', {
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+}
+
 function updateCurrentDate() {
     const dateElement = document.getElementById('currentDate');
     const now = new Date();

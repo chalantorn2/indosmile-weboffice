@@ -14,6 +14,7 @@ import LandOperationsPage from "./pages/LandOperationsPage";
 import BlogPage from "./pages/BlogPage";
 import BlogDetail from "./pages/BlogDetail";
 import TransferPage from "./pages/TransferPage";
+import BookingStatus from "./pages/BookingStatus";
 import AgentPage from "./pages/AgentPage";
 import AgentLogin from "./pages/AgentLogin";
 import AgentLayout from "./pages/agent/AgentLayout";
@@ -46,6 +47,7 @@ function App() {
           <Route path="/shows-adventures" element={<ShowsAdventures />} />
           <Route path="/shows-adventures/:id" element={<ShowDetail />} />
           <Route path="/booking-detail/:id" element={<TourDetail />} />
+          <Route path="/booking/:reference" element={<BookingStatus />} />
           <Route path="/hotels" element={<Hotels />} />
           <Route path="/hotels/:id" element={<HotelDetail />} />
           <Route path="/blog" element={<BlogPage />} />

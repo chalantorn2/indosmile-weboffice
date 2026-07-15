@@ -12,7 +12,7 @@ class Agent {
     // Columns returned to the admin panel / agent portal (never the password hash)
     const PUBLIC_FIELDS = 'id, agent_code, company_name, contact_name, email, phone, whatsapp, line_id, wechat_id,
                            country, address, tax_id, license_no, notes, status, must_change_password,
-                           last_login, login_count, created_at, updated_at';
+                           credentials_sent_at, last_login, login_count, created_at, updated_at';
 
     public function __construct($db) {
         $this->conn = $db;
@@ -242,6 +242,18 @@ class Agent {
 
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         $stmt->bindParam(':password', $hashedPassword);
+
+        return $stmt->execute();
+    }
+
+    /**
+     * Remember that the agent has been emailed their login details, so the admin list
+     * can tell an account that is merely created from one the partner can actually use.
+     */
+    public function markCredentialsSent($id) {
+        $query = "UPDATE {$this->table} SET credentials_sent_at = NOW() WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
 
         return $stmt->execute();
     }

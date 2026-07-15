@@ -95,6 +95,8 @@ function openShowModal(showId = null) {
             document.getElementById('shName').value = show.name || '';
             document.getElementById('shDestination').value = show.destination || '';
             document.getElementById('shVenue').value = show.venue || '';
+            document.getElementById('shNetAdultPrice').value = show.net_adult_price || '';
+            document.getElementById('shNetChildPrice').value = show.net_child_price || '';
             document.getElementById('shAdultPrice').value = show.adult_price || '';
             document.getElementById('shChildPrice').value = show.child_price || '';
             document.getElementById('shParkFeeIncluded').checked = Number(show.park_fee_included) === 1;
@@ -185,11 +187,15 @@ async function handleShowSubmit(e) {
     const durationNights = parseInt(document.getElementById('shDurationNights').value) || 0;
     const adultPrice = parseFloat(document.getElementById('shAdultPrice').value);
     const childPrice = parseFloat(document.getElementById('shChildPrice').value) || null;
+    const netAdultPrice = parseFloat(document.getElementById('shNetAdultPrice').value);
+    const netChildPrice = parseFloat(document.getElementById('shNetChildPrice').value);
 
     const showData = {
         name: document.getElementById('shName').value,
         destination: document.getElementById('shDestination').value,
         venue: document.getElementById('shVenue').value || null,
+        net_adult_price: isNaN(netAdultPrice) ? null : netAdultPrice,
+        net_child_price: isNaN(netChildPrice) ? null : netChildPrice,
         adult_price: adultPrice,
         child_price: childPrice,
         park_fee_included: document.getElementById('shParkFeeIncluded').checked ? 1 : 0,

@@ -57,6 +57,14 @@
           <h2>Admin Panel</h2>
         </div>
         <nav class="nav-menu">
+          <a href="#" class="nav-item" data-page="overview">
+            <span class="icon"><i data-lucide="layout-dashboard" class="w-5 h-5"></i></span>
+            Overview
+          </a>
+          <a href="#" class="nav-item" data-page="bookings">
+            <span class="icon"><i data-lucide="calendar-check" class="w-5 h-5"></i></span>
+            Bookings
+          </a>
           <a href="#" class="nav-item active" data-page="tours">
             <span class="icon"><i data-lucide="map" class="w-5 h-5"></i></span>
             Tours
@@ -301,6 +309,12 @@
                   <option value="cancelled">Cancelled</option>
                   <option value="completed">Completed</option>
                 </select>
+                <select id="paymentFilter">
+                  <option value="">All Payments</option>
+                  <option value="unpaid">Unpaid</option>
+                  <option value="paid">Paid</option>
+                  <option value="refunded">Refunded</option>
+                </select>
                 <input
                   type="text"
                   id="searchBookings"
@@ -311,6 +325,7 @@
             <div id="bookingsTable" class="table-container">
               <p class="loading">Loading...</p>
             </div>
+            <div id="bookingsPagination" class="pagination"></div>
           </div>
 
           <!-- Agents Page -->
@@ -530,6 +545,7 @@ $modals = [
     'import-modal.php',
     'hotel-modal.php',
     'user-modal.php',
+    'booking-modal.php',
     'agent-modal.php',
     'agent-rates-modal.php',
     'blog-post-modal.php',

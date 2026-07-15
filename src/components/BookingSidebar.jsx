@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DatePicker from "./DatePicker";
 
 const API_BASE = '/backend/api';
 
 export default function BookingSidebar({ tour }) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -47,16 +49,14 @@ export default function BookingSidebar({ tour }) {
 
       const data = await response.json();
 
-      if (data.success) {
-        setSubmitResult({
-          success: true,
-          message: 'Booking submitted successfully!',
-          reference: data.data?.booking_reference,
-        });
-        setFormData({ name: "", email: "", phone: "", date: new Date().toISOString().split("T")[0], adults: 1, children: 0, message: "" });
-      } else {
-        setSubmitResult({ success: false, message: data.message || 'Failed to submit booking. Please try again.' });
+      if (data.success && data.data?.booking_reference) {
+        // The status page is the receipt: it carries the reference, the next step,
+        // and later the Pay Now button. Keep the customer there, not on this form.
+        navigate(`/booking/${data.data.booking_reference}`);
+        return;
       }
+
+      setSubmitResult({ success: false, message: data.message || 'Failed to submit booking. Please try again.' });
     } catch {
       setSubmitResult({ success: false, message: 'Network error. Please try again later.' });
     } finally {
@@ -186,15 +186,10 @@ export default function BookingSidebar({ tour }) {
             ) : 'Book Now'}
           </button>
 
-          {submitResult && (
-            <div className={`mt-2 p-2 rounded-lg text-sm font-body ${submitResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+          {/* Success navigates away to the booking status page, so only failures land here. */}
+          {submitResult && !submitResult.success && (
+            <div className="mt-2 p-2 rounded-lg text-sm font-body bg-red-50 text-red-700 border border-red-200">
               <p className="font-semibold">{submitResult.message}</p>
-              {submitResult.reference && (
-                <p className="mt-0.5 text-[11px]">Reference: <span className="font-bold">{submitResult.reference}</span></p>
-              )}
-              {submitResult.success && (
-                <p className="mt-0.5 text-[11px]">We will contact you shortly.</p>
-              )}
             </div>
           )}
         </form>

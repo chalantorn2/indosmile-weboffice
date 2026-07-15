@@ -27,6 +27,16 @@ function agentStatusBadge(status) {
     return `<span class="badge badge-${map[status] || 'info'}">${escapeHtml(status)}</span>`;
 }
 
+/**
+ * An account nobody has been told about is useless, and there is no other way to spot one:
+ * the agent simply never logs in.
+ */
+function agentCredentialsBadge(agent) {
+    return agent.credentials_sent_at
+        ? `<span class="badge badge-confirmed" title="Sent ${escapeHtml(formatDate(agent.credentials_sent_at))}">Sent</span>`
+        : '<span class="badge badge-pending" title="This agent has not been emailed their login details">Not sent</span>';
+}
+
 function displayAgents(agentsList) {
     const container = document.getElementById('agentsTable');
 
@@ -44,6 +54,7 @@ function displayAgents(agentsList) {
                     <th>Contact</th>
                     <th>Email</th>
                     <th>Status</th>
+                    <th>Login Sent</th>
                     <th>Last Login</th>
                     <th>Logins</th>
                     <th>Actions</th>
@@ -57,6 +68,7 @@ function displayAgents(agentsList) {
                         <td>${escapeHtml(agent.contact_name || '-')}</td>
                         <td>${escapeHtml(agent.email)}</td>
                         <td>${agentStatusBadge(agent.status)}</td>
+                        <td>${agentCredentialsBadge(agent)}</td>
                         <td>${agent.last_login ? formatDate(agent.last_login) : '<span style="color:#999">Never</span>'}</td>
                         <td>${agent.login_count || 0}</td>
                         <td>
@@ -138,7 +150,7 @@ function openAgentModal(agent = null) {
     } else {
         document.getElementById('agentModalTitle').textContent = 'Add New Agent';
         document.getElementById('agentModalSubtitle').textContent = 'A login password is generated automatically on save';
-        document.getElementById('agentModalFooterHint').textContent = 'Blank code = company initials. Password is always generated.';
+        document.getElementById('agentModalFooterHint').textContent = 'Blank code = company initials. You choose when to email the login details.';
     }
 
     modal.classList.add('active');
@@ -204,7 +216,7 @@ async function handleAgentSubmit(e) {
 
         // A brand new agent comes back with its one-time password.
         if (!isEdit && data.data.generated_password) {
-            showAgentPassword(data.data.email, data.data.generated_password, 'Give these credentials to the agent');
+            showAgentPassword(data.data, data.data.generated_password, 'Give these credentials to the agent');
         }
     } catch (error) {
         console.error('Error saving agent:', error);
@@ -238,8 +250,16 @@ async function deleteAgent(id, companyName) {
 }
 
 // =====================
-// Password generation
+// Password generation & handover
+//
+// The plaintext password only exists inside the password modal — the server keeps a hash.
+// So emailing it to the agent has to happen from there, while it is still on screen; once
+// the dialog closes, the only way to notify them is to generate a fresh password.
+// Nothing is ever emailed automatically: accounts are often set up before the partner is
+// meant to have access.
 // =====================
+let agentPasswordAgentId = null;
+
 async function generateAgentPassword(id) {
     const agent = agents.find(a => a.id == id);
     const label = agent ? agent.company_name : 'this agent';
@@ -257,7 +277,7 @@ async function generateAgentPassword(id) {
         const data = await response.json();
 
         if (data.success) {
-            showAgentPassword(agent ? agent.email : '', data.data.generated_password, 'Send the new password to the agent');
+            showAgentPassword(agent || { id: id }, data.data.generated_password, 'Send the new password to the agent');
             loadAgents();
         } else {
             showToast(data.message || 'Failed to generate password', 'error');
@@ -268,10 +288,20 @@ async function generateAgentPassword(id) {
     }
 }
 
-function showAgentPassword(email, password, subtitle) {
-    document.getElementById('agentPasswordEmail').textContent = email || '—';
+function showAgentPassword(agent, password, subtitle) {
+    agentPasswordAgentId = agent.id;
+
+    document.getElementById('agentPasswordEmail').textContent = agent.email || '—';
     document.getElementById('agentPasswordValue').textContent = password;
     document.getElementById('agentPasswordSubtitle').textContent = subtitle || 'Shown once — copy it now';
+
+    // Re-arm the send button: the same modal is reused for every agent.
+    const emailBtn = document.getElementById('agentPasswordEmailBtn');
+    emailBtn.disabled = false;
+    document.getElementById('agentPasswordEmailBtnLabel').textContent = 'Email these details to the agent';
+    document.getElementById('agentPasswordEmailHint').textContent =
+        'Sends the agent code, login email and this password. Nothing goes out until you press it.';
+
     document.getElementById('agentPasswordModal').classList.add('active');
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
@@ -284,6 +314,48 @@ async function copyAgentPassword() {
         showToast('Password copied to clipboard', 'success');
     } catch (error) {
         showToast('Could not copy — please select the password manually', 'warning');
+    }
+}
+
+async function emailAgentCredentials() {
+    const password = document.getElementById('agentPasswordValue').textContent;
+    const btn = document.getElementById('agentPasswordEmailBtn');
+    const label = document.getElementById('agentPasswordEmailBtnLabel');
+
+    if (!agentPasswordAgentId || !password || password === '—') {
+        showToast('No password to send', 'warning');
+        return;
+    }
+
+    btn.disabled = true;
+    label.textContent = 'Sending...';
+
+    try {
+        const response = await fetch(`${API_BASE}/agents.php/${agentPasswordAgentId}/send-credentials`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ password: password })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            btn.disabled = false;
+            label.textContent = 'Retry sending';
+            showToast(data.message || 'Failed to send the email', 'error');
+            return;
+        }
+
+        label.textContent = 'Sent';
+        document.getElementById('agentPasswordEmailHint').textContent = data.message || 'Login details sent';
+        showToast(data.message || 'Login details sent', 'success');
+        loadAgents();
+    } catch (error) {
+        console.error('Error sending agent credentials:', error);
+        btn.disabled = false;
+        label.textContent = 'Retry sending';
+        showToast('Error sending the email', 'error');
     }
 }
 
@@ -404,6 +476,7 @@ function renderAgentDetail(agent) {
                 <h3 class="section-title">Login Activity</h3>
                 <span class="ml-auto text-xs text-gray-400">
                     ${agent.login_count || 0} logins • last ${agent.last_login ? formatDate(agent.last_login) : 'never'}
+                    • login details ${agent.credentials_sent_at ? 'emailed ' + formatDate(agent.credentials_sent_at) : 'never emailed'}
                 </span>
             </div>
             <div class="section-body">
@@ -418,8 +491,8 @@ function renderAgentDetail(agent) {
 // =====================
 // Contract Rates
 //
-// Rates are stored as a discount off our selling price, and a tour is only visible
-// in the agent portal once it has a rate. So this screen doubles as the agent's
+// Rates are stored as a markup on top of our net (cost) price, and a tour is only
+// visible in the agent portal once it has a rate. So this screen doubles as the agent's
 // tour catalogue: removing a rate takes the tour away from them.
 // =====================
 let agentRatesAgentId = null;
@@ -441,8 +514,8 @@ async function openAgentRates(id) {
         ? `${agent.agent_code} • only tours with a rate are visible to this agent`
         : 'Only tours with a rate are visible to this agent';
     document.getElementById('agentRatesSearch').value = '';
-    document.getElementById('agentRatesAdultDiscount').value = '';
-    document.getElementById('agentRatesChildDiscount').value = '';
+    document.getElementById('agentRatesAdultMarkup').value = '';
+    document.getElementById('agentRatesChildMarkup').value = '';
     document.getElementById('agentRatesTable').innerHTML = '<p class="loading">Loading...</p>';
 
     syncAgentRatesFilterButtons();
@@ -475,7 +548,7 @@ function agentRatesVisibleRows() {
     const search = document.getElementById('agentRatesSearch').value.trim().toLowerCase();
 
     return agentRates.filter(row => {
-        const hasRate = row.adult_discount !== null;
+        const hasRate = row.adult_markup !== null;
 
         if (agentRatesFilter === 'rated' && !hasRate) return false;
         if (agentRatesFilter === 'unrated' && hasRate) return false;
@@ -513,14 +586,14 @@ function renderAgentRates() {
                     </th>
                     <th>Tour</th>
                     <th>Destination</th>
-                    <th>Our Price</th>
-                    <th>Discount</th>
-                    <th>Net Rate</th>
+                    <th>Our Net Price</th>
+                    <th>Markup</th>
+                    <th>Agent Rate</th>
                 </tr>
             </thead>
             <tbody>
                 ${rows.map(row => {
-                    const hasRate = row.adult_discount !== null;
+                    const hasRate = row.adult_markup !== null;
                     const selected = agentRatesSelection.has(row.tour_id);
                     const dash = '<span style="color:#bbb">—</span>';
 
@@ -537,19 +610,19 @@ function renderAgentRates() {
                             </td>
                             <td>${escapeHtml(row.destination || '-')}</td>
                             <td>
-                                <span class="text-sm">${formatCurrency(row.adult_price)}</span>
-                                <span class="text-xs text-gray-400"> / ${row.child_price !== null ? formatCurrency(row.child_price) : '—'}</span>
+                                <span class="text-sm">${formatCurrency(row.net_adult_price)}</span>
+                                <span class="text-xs text-gray-400"> / ${row.net_child_price !== null ? formatCurrency(row.net_child_price) : '—'}</span>
                             </td>
                             <td>
                                 ${hasRate
-                                    ? `<span class="text-sm" style="color:#c2410c">-${formatCurrency(row.adult_discount)}</span>
-                                       <span class="text-xs text-gray-400"> / ${row.child_price !== null ? '-' + formatCurrency(row.child_discount) : '—'}</span>`
+                                    ? `<span class="text-sm" style="color:#c2410c">+${formatCurrency(row.adult_markup)}</span>
+                                       <span class="text-xs text-gray-400"> / ${row.net_child_price !== null ? '+' + formatCurrency(row.child_markup) : '—'}</span>`
                                     : dash}
                             </td>
                             <td>
                                 ${hasRate
-                                    ? `<span class="text-sm" style="font-weight:700;color:#15803d">${formatCurrency(row.net_adult_price)}</span>
-                                       <span class="text-xs text-gray-400"> / ${row.net_child_price !== null ? formatCurrency(row.net_child_price) : '—'}</span>`
+                                    ? `<span class="text-sm" style="font-weight:700;color:#15803d">${formatCurrency(row.agent_adult_price)}</span>
+                                       <span class="text-xs text-gray-400"> / ${row.agent_child_price !== null ? formatCurrency(row.agent_child_price) : '—'}</span>`
                                     : dash}
                             </td>
                         </tr>
@@ -634,24 +707,24 @@ async function applyAgentRates() {
         return;
     }
 
-    const adultDiscount = parseFloat(document.getElementById('agentRatesAdultDiscount').value);
-    const childDiscountRaw = document.getElementById('agentRatesChildDiscount').value;
-    const childDiscount = childDiscountRaw === '' ? 0 : parseFloat(childDiscountRaw);
+    const adultMarkup = parseFloat(document.getElementById('agentRatesAdultMarkup').value);
+    const childMarkupRaw = document.getElementById('agentRatesChildMarkup').value;
+    const childMarkup = childMarkupRaw === '' ? 0 : parseFloat(childMarkupRaw);
 
-    if (isNaN(adultDiscount) || adultDiscount < 0) {
-        showToast('Enter an adult discount of 0 or more', 'warning');
+    if (isNaN(adultMarkup) || adultMarkup < 0) {
+        showToast('Enter an adult markup of 0 or more', 'warning');
         return;
     }
 
-    if (isNaN(childDiscount) || childDiscount < 0) {
-        showToast('Child discount cannot be negative', 'warning');
+    if (isNaN(childMarkup) || childMarkup < 0) {
+        showToast('Child markup cannot be negative', 'warning');
         return;
     }
 
     await saveAgentRates('PUT', {
         tour_ids: Array.from(agentRatesSelection),
-        adult_discount: adultDiscount,
-        child_discount: childDiscount
+        adult_markup: adultMarkup,
+        child_markup: childMarkup
     });
 }
 

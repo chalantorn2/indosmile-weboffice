@@ -154,8 +154,8 @@ function renderImportDetail() {
                 ${field('Departure', d.departure_from)}
                 ${field('Destination', d.destination)}
                 ${field('Pier / Venue', d.pier)}
-                ${field('Adult', d.adult_price)}
-                ${field('Child', d.child_price)}
+                ${field('Net adult', d.adult_price)}
+                ${field('Net child', d.child_price)}
                 ${field('Park fee', formatParkFee(d))}
             </dl>
             ${d.notes ? `<p class="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-200"><span class="text-gray-400">Notes:</span> ${escapeHtml(d.notes)}</p>` : ''}
@@ -318,6 +318,9 @@ async function confirmImport() {
 /**
  * The source API has no description, duration, highlights or itinerary — those tabs
  * stay empty on purpose and the admin fills them before saving.
+ *
+ * Contract Rate prices are the supplier's NET, so they land in the net fields. The
+ * selling price is left blank deliberately: it is a decision, not an import.
  */
 function prefillTourFromImport(d, mainImage, gallery) {
     openTourModal();
@@ -327,8 +330,10 @@ function prefillTourFromImport(d, mainImage, gallery) {
 
     document.getElementById('tourName').value = d.tour_name || '';
     document.getElementById('tourDestination').value = d.destination || d.departure_from || '';
-    document.getElementById('tourAdultPrice').value = d.adult_price || '';
-    document.getElementById('tourChildPrice').value = d.child_price || '';
+    document.getElementById('tourNetAdultPrice').value = d.adult_price || '';
+    document.getElementById('tourNetChildPrice').value = d.child_price || '';
+    document.getElementById('tourAdultPrice').value = '';
+    document.getElementById('tourChildPrice').value = '';
     document.getElementById('tourParkFeeIncluded').checked = Number(d.park_fee_included) === 1;
     document.getElementById('tourParkFeeAdult').value = d.park_fee_adult || '';
     document.getElementById('tourParkFeeChild').value = d.park_fee_child || '';
@@ -345,7 +350,7 @@ function prefillTourFromImport(d, mainImage, gallery) {
 
     toggleDayTripTab();
     updateTabDots();
-    showToast('Imported. Fill in the description and details, then save.', 'info');
+    showToast('Imported at net price. Set the selling price and description, then save.', 'info');
 }
 
 function prefillShowFromImport(d, mainImage, gallery) {
@@ -357,8 +362,10 @@ function prefillShowFromImport(d, mainImage, gallery) {
     document.getElementById('shName').value = d.tour_name || '';
     document.getElementById('shDestination').value = d.destination || d.departure_from || '';
     document.getElementById('shVenue').value = d.pier || '';
-    document.getElementById('shAdultPrice').value = d.adult_price || '';
-    document.getElementById('shChildPrice').value = d.child_price || '';
+    document.getElementById('shNetAdultPrice').value = d.adult_price || '';
+    document.getElementById('shNetChildPrice').value = d.child_price || '';
+    document.getElementById('shAdultPrice').value = '';
+    document.getElementById('shChildPrice').value = '';
     document.getElementById('shParkFeeIncluded').checked = Number(d.park_fee_included) === 1;
     document.getElementById('shParkFeeAdult').value = d.park_fee_adult || '';
     document.getElementById('shParkFeeChild').value = d.park_fee_child || '';
@@ -370,5 +377,5 @@ function prefillShowFromImport(d, mainImage, gallery) {
     setShowMainImagePreview(mainImage);
     setShowGalleryFromUrls(gallery);
 
-    showToast('Imported. Fill in the description and details, then save.', 'info');
+    showToast('Imported at net price. Set the selling price and description, then save.', 'info');
 }

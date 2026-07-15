@@ -90,16 +90,34 @@
                   <h3 class="section-title">Pricing</h3>
                 </div>
                 <div class="section-body">
+                  <p class="text-xs text-gray-400 mb-3">Net is what the tour costs us — internal only, never shown on the website. Agent rates are built on top of it.</p>
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <label for="tourAdultPrice" class="field-label">Adult Price <span class="text-red-400">*</span></label>
+                      <label for="tourNetAdultPrice" class="field-label">Net Adult Price</label>
+                      <div class="field-input-group">
+                        <span class="field-addon">THB</span>
+                        <input type="number" id="tourNetAdultPrice" name="net_adult_price" step="0.01" placeholder="0.00" class="field-input-grouped" />
+                      </div>
+                    </div>
+                    <div>
+                      <label for="tourNetChildPrice" class="field-label">Net Child Price</label>
+                      <div class="field-input-group">
+                        <span class="field-addon">THB</span>
+                        <input type="number" id="tourNetChildPrice" name="net_child_price" step="0.01" placeholder="0.00" class="field-input-grouped" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label for="tourAdultPrice" class="field-label">Selling Adult Price <span class="text-red-400">*</span></label>
                       <div class="field-input-group">
                         <span class="field-addon">THB</span>
                         <input type="number" id="tourAdultPrice" name="adult_price" step="0.01" required placeholder="0.00" class="field-input-grouped" />
                       </div>
                     </div>
                     <div>
-                      <label for="tourChildPrice" class="field-label">Child Price</label>
+                      <label for="tourChildPrice" class="field-label">Selling Child Price</label>
                       <div class="field-input-group">
                         <span class="field-addon">THB</span>
                         <input type="number" id="tourChildPrice" name="child_price" step="0.01" placeholder="0.00" class="field-input-grouped" />

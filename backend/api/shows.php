@@ -56,11 +56,15 @@ function decodeShowJsonFields(&$show) {
 }
 
 function handleGetRequest($showModel) {
+    // The admin panel reads this same endpoint and needs the net (cost) price to edit it.
+    // Nobody else may see it.
+    $isAdmin = isAdminLoggedIn();
+
     if (isset($_GET['id'])) {
         $show = $showModel->getById($_GET['id']);
         if ($show) {
             decodeShowJsonFields($show);
-            sendResponse($show, 200);
+            sendResponse($isAdmin ? $show : stripNetPrices($show), 200);
         } else {
             sendError('Show not found', 404);
         }
@@ -70,7 +74,7 @@ function handleGetRequest($showModel) {
         $show = $showModel->getBySlug($_GET['slug']);
         if ($show) {
             decodeShowJsonFields($show);
-            sendResponse($show, 200);
+            sendResponse($isAdmin ? $show : stripNetPrices($show), 200);
         } else {
             sendError('Show not found', 404);
         }
@@ -96,7 +100,12 @@ function handleGetRequest($showModel) {
 
     foreach ($shows as &$show) {
         decodeShowJsonFields($show);
+
+        if (!$isAdmin) {
+            $show = stripNetPrices($show);
+        }
     }
+    unset($show);
 
     $response = buildPaginationResponse($shows, $total, $pagination['page'], $pagination['limit']);
     sendResponse($response, 200);
@@ -222,6 +231,12 @@ function buildShowData($input, $adminId = null, $existing = null) {
         'duration_days' => (int)$get('duration_days', 1),
         'duration_nights' => (int)$get('duration_nights', 0),
         'duration_label' => sanitizeInput($get('duration_label')),
+        'net_adult_price' => array_key_exists('net_adult_price', $input)
+            ? parseOptionalDecimal($input['net_adult_price'])
+            : ($existing['net_adult_price'] ?? null),
+        'net_child_price' => array_key_exists('net_child_price', $input)
+            ? parseOptionalDecimal($input['net_child_price'])
+            : ($existing['net_child_price'] ?? null),
         'adult_price' => (float)$get('adult_price', 0),
         'child_price' => isset($input['child_price']) ? (float)$input['child_price'] : ($existing['child_price'] ?? null),
         'park_fee_included' => isset($input['park_fee_included'])

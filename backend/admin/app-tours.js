@@ -95,6 +95,8 @@ function openTourModal(tourId = null) {
             document.getElementById('tourType').value = tour.type || 'inbound';
             document.getElementById('tourName').value = tour.name || '';
             document.getElementById('tourDestination').value = tour.destination || '';
+            document.getElementById('tourNetAdultPrice').value = tour.net_adult_price || '';
+            document.getElementById('tourNetChildPrice').value = tour.net_child_price || '';
             document.getElementById('tourAdultPrice').value = tour.adult_price || '';
             document.getElementById('tourChildPrice').value = tour.child_price || '';
             document.getElementById('tourParkFeeIncluded').checked = Number(tour.park_fee_included) === 1;
@@ -190,11 +192,15 @@ async function handleTourSubmit(e) {
     const durationNights = parseInt(document.getElementById('tourDurationNights').value);
     const adultPrice = parseFloat(document.getElementById('tourAdultPrice').value);
     const childPrice = parseFloat(document.getElementById('tourChildPrice').value) || null;
+    const netAdultPrice = parseFloat(document.getElementById('tourNetAdultPrice').value);
+    const netChildPrice = parseFloat(document.getElementById('tourNetChildPrice').value);
 
     const tourData = {
         name: document.getElementById('tourName').value,
         destination: document.getElementById('tourDestination').value,
         type: document.getElementById('tourType').value || 'inbound',
+        net_adult_price: isNaN(netAdultPrice) ? null : netAdultPrice,
+        net_child_price: isNaN(netChildPrice) ? null : netChildPrice,
         adult_price: adultPrice,
         child_price: childPrice,
         park_fee_included: document.getElementById('tourParkFeeIncluded').checked ? 1 : 0,

@@ -208,6 +208,31 @@ function verifyAdminSession()
 }
 
 /**
+ * Same check as verifyAdminSession(), but answers instead of rejecting — for endpoints
+ * that serve both the public site and the admin panel and only differ in what they show.
+ */
+function isAdminLoggedIn()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_name(SESSION_NAME);
+        session_start();
+    }
+
+    return isset($_SESSION['admin_id']) && isset($_SESSION['admin_logged_in']);
+}
+
+/**
+ * net_adult_price / net_child_price are what a tour COSTS us. They live in the same
+ * row as the selling price, and tours/shows are read with SELECT *, so every public
+ * read has to drop them explicitly — a customer must never see what we paid.
+ */
+function stripNetPrices($row)
+{
+    unset($row['net_adult_price'], $row['net_child_price']);
+    return $row;
+}
+
+/**
  * Get pagination params
  */
 function getPaginationParams()
@@ -359,6 +384,116 @@ function generateBookingReference()
     $timestamp = time();
     $random = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
     return $prefix . $timestamp . $random;
+}
+
+// =====================================================================
+// Email
+// =====================================================================
+
+if (!defined('SITE_URL')) {
+    define('SITE_URL', 'https://indosmilesouthservices.com');
+}
+if (!defined('ADMIN_EMAIL')) {
+    define('ADMIN_EMAIL', 'info@indosmilesouthservices.com');
+}
+if (!defined('MAIL_FROM')) {
+    define('MAIL_FROM', 'Indo Smile South Services <booking@indosmilesouthservices.com>');
+}
+
+/**
+ * Send an HTML email and log the outcome.
+ *
+ * PHP's mail() only reports "handed to the MTA", not delivery — but a false return
+ * still means the message never left, which the old @mail() calls swallowed silently.
+ */
+function sendMail($to, $subject, $htmlBody, $replyTo = null)
+{
+    $headers  = "MIME-Version: 1.0\r\n";
+    $headers .= "Content-type: text/html; charset=UTF-8\r\n";
+    $headers .= 'From: ' . MAIL_FROM . "\r\n";
+    if ($replyTo) {
+        $headers .= 'Reply-To: ' . $replyTo . "\r\n";
+    }
+
+    $sent = @mail($to, $subject, $htmlBody, $headers, '-f ' . ADMIN_EMAIL);
+
+    @file_put_contents(
+        __DIR__ . '/mail.log',
+        '[' . date('Y-m-d H:i:s') . '] ' . ($sent ? 'OK  ' : 'FAIL') . " to=$to subject=$subject" . PHP_EOL,
+        FILE_APPEND
+    );
+
+    return $sent;
+}
+
+/**
+ * Wrap body content in the shared branded email shell.
+ *
+ * $accent tints the reference bar so the customer can tell the three mails apart at
+ * a glance: yellow = received, blue = pay now, green = paid.
+ */
+function emailLayout($heading, $reference, $contentHtml, $accent = 'yellow')
+{
+    $accents = [
+        'yellow' => ['bg' => '#FFC72C', 'fg' => '#1B2E4A'],
+        'blue'   => ['bg' => '#1B2E4A', 'fg' => '#ffffff'],
+        'green'  => ['bg' => '#1E8E5A', 'fg' => '#ffffff'],
+    ];
+    $a = $accents[$accent] ?? $accents['yellow'];
+
+    $refBar = $reference
+        ? "<div style='background:{$a['bg']};color:{$a['fg']};padding:15px;text-align:center;font-size:18px;font-weight:bold;'>
+               Booking Reference: {$reference}
+           </div>"
+        : '';
+
+    return "
+    <html>
+    <head><meta charset='UTF-8'></head>
+    <body style='margin:0;padding:0;background:#f4f4f4;'>
+        <div style='max-width:600px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:#333;background:#ffffff;'>
+            <div style='background:#1B2E4A;color:#fff;padding:20px;text-align:center;'>
+                <h1 style='margin:0;font-size:22px;'>{$heading}</h1>
+            </div>
+            {$refBar}
+            <div style='padding:20px;background:#f9f9f9;'>
+                {$contentHtml}
+            </div>
+            <div style='padding:15px;text-align:center;font-size:12px;color:#999;'>
+                <p style='margin:0 0 4px;'>Indo Smile South Services</p>
+                <p style='margin:0;'>+66 82 253 6662 &middot; " . ADMIN_EMAIL . "</p>
+            </div>
+        </div>
+    </body>
+    </html>";
+}
+
+/**
+ * Render a label/value table for email bodies. Values are escaped.
+ */
+function emailInfoTable(array $rows)
+{
+    $html = "<table style='width:100%;border-collapse:collapse;'>";
+    foreach ($rows as $label => $value) {
+        if ($value === null || $value === '') {
+            continue;
+        }
+        $label = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+        $value = htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+        $html .= "<tr>
+            <td style='padding:10px 12px;border-bottom:1px solid #e0e0e0;font-weight:bold;width:40%;color:#1B2E4A;'>{$label}</td>
+            <td style='padding:10px 12px;border-bottom:1px solid #e0e0e0;'>{$value}</td>
+        </tr>";
+    }
+    return $html . '</table>';
+}
+
+/**
+ * Public URL of the customer-facing booking status page.
+ */
+function bookingStatusUrl($reference)
+{
+    return SITE_URL . '/booking/' . rawurlencode($reference);
 }
 
 // =====================================================================

@@ -114,8 +114,9 @@ function setupEventListeners() {
     document.getElementById('addSeatZoneBtn').addEventListener('click', () => addSeatZone());
 
     // Filters
-    document.getElementById('statusFilter').addEventListener('change', loadBookings);
-    document.getElementById('searchBookings').addEventListener('input', debounce(loadBookings, 500));
+    document.getElementById('statusFilter').addEventListener('change', reloadBookingsFromFirstPage);
+    document.getElementById('paymentFilter').addEventListener('change', reloadBookingsFromFirstPage);
+    document.getElementById('searchBookings').addEventListener('input', debounce(reloadBookingsFromFirstPage, 500));
 
     // Hotel Actions
     document.getElementById('addHotelBtn').addEventListener('click', () => openHotelModal());
@@ -155,6 +156,7 @@ function setupEventListeners() {
     document.getElementById('addAgentBtn').addEventListener('click', () => openAgentModal());
     document.getElementById('agentForm').addEventListener('submit', handleAgentSubmit);
     document.getElementById('agentPasswordCopyBtn').addEventListener('click', copyAgentPassword);
+    document.getElementById('agentPasswordEmailBtn').addEventListener('click', emailAgentCredentials);
     document.getElementById('agentCodeSuggestBtn').addEventListener('click', suggestAgentCode);
 
     // Agent modal close

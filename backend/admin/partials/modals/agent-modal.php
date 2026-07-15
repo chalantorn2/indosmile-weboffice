@@ -205,6 +205,14 @@
           <p class="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-4 py-3">
             This password is not stored in plain text. Once you close this dialog it cannot be shown again — you would have to generate a new one.
           </p>
+
+          <button type="button" id="agentPasswordEmailBtn"
+                  class="w-full mt-4 px-4 py-3 rounded-xl bg-yellow text-navy text-sm font-bold hover:brightness-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i data-lucide="mail" class="w-4 h-4"></i> <span id="agentPasswordEmailBtnLabel">Email these details to the agent</span>
+          </button>
+          <p class="text-xs text-gray-400 text-center mt-2" id="agentPasswordEmailHint">
+            Sends the agent code, login email and this password. Nothing goes out until you press it.
+          </p>
         </div>
 
         <div class="flex items-center justify-end px-7 py-4 border-t border-gray-100 bg-gray-50/80">

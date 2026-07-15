@@ -57,6 +57,10 @@ switch ($method) {
  * Handle GET requests
  */
 function handleGetRequest($tourModel) {
+    // The admin panel reads this same endpoint and needs the net (cost) price to edit it.
+    // Nobody else may see it.
+    $isAdmin = isAdminLoggedIn();
+
     // Get single tour by ID or slug
     if (isset($_GET['id'])) {
         $tour = $tourModel->getById($_GET['id']);
@@ -70,7 +74,7 @@ function handleGetRequest($tourModel) {
             $tour['departure_times'] = json_decode($tour['departure_times'], true);
             $tour['what_to_bring'] = json_decode($tour['what_to_bring'], true);
 
-            sendResponse($tour, 200);
+            sendResponse($isAdmin ? $tour : stripNetPrices($tour), 200);
         } else {
             sendError('Tour not found', 404);
         }
@@ -88,7 +92,7 @@ function handleGetRequest($tourModel) {
             $tour['departure_times'] = json_decode($tour['departure_times'], true);
             $tour['what_to_bring'] = json_decode($tour['what_to_bring'], true);
 
-            sendResponse($tour, 200);
+            sendResponse($isAdmin ? $tour : stripNetPrices($tour), 200);
         } else {
             sendError('Tour not found', 404);
         }
@@ -126,7 +130,12 @@ function handleGetRequest($tourModel) {
         $tour['itinerary'] = json_decode($tour['itinerary'], true);
         $tour['departure_times'] = json_decode($tour['departure_times'], true);
         $tour['what_to_bring'] = json_decode($tour['what_to_bring'], true);
+
+        if (!$isAdmin) {
+            $tour = stripNetPrices($tour);
+        }
     }
+    unset($tour);
 
     // Build paginated response
     $response = buildPaginationResponse($tours, $total, $pagination['page'], $pagination['limit']);
@@ -167,6 +176,8 @@ function handlePostRequest($tourModel) {
         'duration_days' => (int)$input['duration_days'],
         'duration_nights' => (int)$input['duration_nights'],
         'duration_label' => isset($input['duration_label']) ? sanitizeInput($input['duration_label']) : null,
+        'net_adult_price' => parseOptionalDecimal($input['net_adult_price'] ?? null),
+        'net_child_price' => parseOptionalDecimal($input['net_child_price'] ?? null),
         'adult_price' => (float)$input['adult_price'],
         'child_price' => isset($input['child_price']) ? (float)$input['child_price'] : null,
         'park_fee_included' => isset($input['park_fee_included']) ? (int)(bool)$input['park_fee_included'] : 0,
@@ -260,6 +271,8 @@ function handlePutRequest($tourModel) {
         'duration_days' => isset($input['duration_days']) ? (int)$input['duration_days'] : $existingTour['duration_days'],
         'duration_nights' => isset($input['duration_nights']) ? (int)$input['duration_nights'] : $existingTour['duration_nights'],
         'duration_label' => isset($input['duration_label']) ? sanitizeInput($input['duration_label']) : $existingTour['duration_label'],
+        'net_adult_price' => array_key_exists('net_adult_price', $input) ? parseOptionalDecimal($input['net_adult_price']) : $existingTour['net_adult_price'],
+        'net_child_price' => array_key_exists('net_child_price', $input) ? parseOptionalDecimal($input['net_child_price']) : $existingTour['net_child_price'],
         'adult_price' => isset($input['adult_price']) ? (float)$input['adult_price'] : $existingTour['adult_price'],
         'child_price' => isset($input['child_price']) ? (float)$input['child_price'] : $existingTour['child_price'],
         'park_fee_included' => isset($input['park_fee_included']) ? (int)(bool)$input['park_fee_included'] : (int)$existingTour['park_fee_included'],

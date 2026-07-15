@@ -38,12 +38,12 @@
               <span id="agentRatesSelectedCount">0</span> selected
             </div>
             <div class="w-36">
-              <label for="agentRatesAdultDiscount" class="field-label">Adult discount</label>
-              <input type="number" id="agentRatesAdultDiscount" min="0" step="1" placeholder="150" class="field-input" style="margin:0" />
+              <label for="agentRatesAdultMarkup" class="field-label">Adult markup</label>
+              <input type="number" id="agentRatesAdultMarkup" min="0" step="1" placeholder="150" class="field-input" style="margin:0" />
             </div>
             <div class="w-36">
-              <label for="agentRatesChildDiscount" class="field-label">Child discount</label>
-              <input type="number" id="agentRatesChildDiscount" min="0" step="1" placeholder="100" class="field-input" style="margin:0" />
+              <label for="agentRatesChildMarkup" class="field-label">Child markup</label>
+              <input type="number" id="agentRatesChildMarkup" min="0" step="1" placeholder="100" class="field-input" style="margin:0" />
             </div>
             <div class="flex gap-3 ml-auto">
               <button type="button" id="agentRatesRemoveBtn" class="px-5 py-2.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 transition-all flex items-center gap-2">
@@ -56,7 +56,7 @@
           </div>
           <p class="text-xs text-gray-400 mt-3">
             Click a row to select it, <span class="font-semibold">Shift+click</span> to select a range.
-            Discount is money off our selling price, so the agent's net rate follows any price change on the tour. Removing a tour hides it from their portal.
+            Markup is money added on top of our net price — net 1,000 with a markup of 100 gives the agent 1,100 — so their rate follows any change to what the tour costs us. Removing a tour hides it from their portal.
           </p>
         </div>
 

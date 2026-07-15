@@ -88,16 +88,34 @@
                   <h3 class="section-title">Pricing (internal only — not shown on website)</h3>
                 </div>
                 <div class="section-body">
+                  <p class="text-xs text-gray-400 mb-3">Net is what the show costs us; selling is what we charge. Neither is shown on the website.</p>
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <label for="shAdultPrice" class="field-label">Adult Price <span class="text-red-400">*</span></label>
+                      <label for="shNetAdultPrice" class="field-label">Net Adult Price</label>
+                      <div class="field-input-group">
+                        <span class="field-addon">THB</span>
+                        <input type="number" id="shNetAdultPrice" step="0.01" placeholder="0.00" class="field-input-grouped" />
+                      </div>
+                    </div>
+                    <div>
+                      <label for="shNetChildPrice" class="field-label">Net Child Price</label>
+                      <div class="field-input-group">
+                        <span class="field-addon">THB</span>
+                        <input type="number" id="shNetChildPrice" step="0.01" placeholder="0.00" class="field-input-grouped" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label for="shAdultPrice" class="field-label">Selling Adult Price <span class="text-red-400">*</span></label>
                       <div class="field-input-group">
                         <span class="field-addon">THB</span>
                         <input type="number" id="shAdultPrice" step="0.01" required placeholder="0.00" class="field-input-grouped" />
                       </div>
                     </div>
                     <div>
-                      <label for="shChildPrice" class="field-label">Child Price</label>
+                      <label for="shChildPrice" class="field-label">Selling Child Price</label>
                       <div class="field-input-group">
                         <span class="field-addon">THB</span>
                         <input type="number" id="shChildPrice" step="0.01" placeholder="0.00" class="field-input-grouped" />
