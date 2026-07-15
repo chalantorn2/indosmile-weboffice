@@ -89,6 +89,7 @@ sendResponse([
     'travel_date'       => $booking['travel_date'],
     'adults'            => (int)$booking['adults'],
     'children'          => (int)$booking['children'],
+    'infants'           => (int)($booking['infants'] ?? 0),
     'number_of_guests'  => (int)$booking['number_of_guests'],
     'special_requests'  => $booking['special_requests'],
     'total_price'       => (float)$booking['total_price'],

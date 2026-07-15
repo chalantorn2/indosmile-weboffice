@@ -380,10 +380,12 @@ function parseOptionalDecimal($value)
  */
 function generateBookingReference()
 {
+    // Format: INDO + YYMMDD + 2 random hex chars, e.g. INDO2607153A (12 chars).
+    // Only 256 combos per day, so callers should check for collisions and retry.
     $prefix = 'INDO';
-    $timestamp = time();
-    $random = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
-    return $prefix . $timestamp . $random;
+    $date = date('ymd');
+    $random = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 2));
+    return $prefix . $date . $random;
 }
 
 // =====================================================================

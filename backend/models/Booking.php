@@ -1,21 +1,25 @@
 <?php
+
 /**
  * Booking Model
  * Handles all booking-related database operations
  */
 
-class Booking {
+class Booking
+{
     private $conn;
     private $table = 'bookings';
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->conn = $db;
     }
 
     /**
      * Get all bookings with filters
      */
-    public function getAll($filters = []) {
+    public function getAll($filters = [])
+    {
         $query = "SELECT b.*, t.name as tour_name, t.destination, t.type as tour_type
                   FROM {$this->table} b
                   LEFT JOIN tours t ON b.tour_id = t.id
@@ -39,8 +43,12 @@ class Booking {
         }
 
         if (isset($filters['search']) && !empty($filters['search'])) {
-            $query .= " AND (b.booking_reference LIKE :search OR b.customer_name LIKE :search OR b.customer_email LIKE :search)";
-            $params[':search'] = '%' . $filters['search'] . '%';
+            // EMULATE_PREPARES is off, so a named placeholder can't be reused — give each one its own.
+            $query .= " AND (b.booking_reference LIKE :search_ref OR b.customer_name LIKE :search_name OR b.customer_email LIKE :search_email)";
+            $like = '%' . $filters['search'] . '%';
+            $params[':search_ref'] = $like;
+            $params[':search_name'] = $like;
+            $params[':search_email'] = $like;
         }
 
         if (isset($filters['date_from']) && !empty($filters['date_from'])) {
@@ -85,7 +93,8 @@ class Booking {
     /**
      * Get total count with filters
      */
-    public function getCount($filters = []) {
+    public function getCount($filters = [])
+    {
         $query = "SELECT COUNT(*) as total FROM {$this->table} WHERE 1=1";
         $params = [];
 
@@ -94,9 +103,32 @@ class Booking {
             $params[':status'] = $filters['status'];
         }
 
+        if (isset($filters['payment_status']) && !empty($filters['payment_status'])) {
+            $query .= " AND payment_status = :payment_status";
+            $params[':payment_status'] = $filters['payment_status'];
+        }
+
+        if (isset($filters['tour_id']) && !empty($filters['tour_id'])) {
+            $query .= " AND tour_id = :tour_id";
+            $params[':tour_id'] = $filters['tour_id'];
+        }
+
         if (isset($filters['search']) && !empty($filters['search'])) {
-            $query .= " AND (booking_reference LIKE :search OR customer_name LIKE :search OR customer_email LIKE :search)";
-            $params[':search'] = '%' . $filters['search'] . '%';
+            $query .= " AND (booking_reference LIKE :search_ref OR customer_name LIKE :search_name OR customer_email LIKE :search_email)";
+            $like = '%' . $filters['search'] . '%';
+            $params[':search_ref'] = $like;
+            $params[':search_name'] = $like;
+            $params[':search_email'] = $like;
+        }
+
+        if (isset($filters['date_from']) && !empty($filters['date_from'])) {
+            $query .= " AND travel_date >= :date_from";
+            $params[':date_from'] = $filters['date_from'];
+        }
+
+        if (isset($filters['date_to']) && !empty($filters['date_to'])) {
+            $query .= " AND travel_date <= :date_to";
+            $params[':date_to'] = $filters['date_to'];
         }
 
         $stmt = $this->conn->prepare($query);
@@ -113,7 +145,8 @@ class Booking {
     /**
      * Get booking by ID
      */
-    public function getById($id) {
+    public function getById($id)
+    {
         $query = "SELECT b.*, t.name as tour_name, t.destination, t.type as tour_type, t.adult_price as tour_price
                   FROM {$this->table} b
                   LEFT JOIN tours t ON b.tour_id = t.id
@@ -128,7 +161,8 @@ class Booking {
     /**
      * Get booking by reference
      */
-    public function getByReference($reference) {
+    public function getByReference($reference)
+    {
         $query = "SELECT b.*, t.name as tour_name, t.destination, t.type as tour_type
                   FROM {$this->table} b
                   LEFT JOIN tours t ON b.tour_id = t.id
@@ -143,14 +177,15 @@ class Booking {
     /**
      * Create new booking
      */
-    public function create($data) {
+    public function create($data)
+    {
         $query = "INSERT INTO {$this->table} (
             tour_id, booking_reference, customer_name, customer_email, customer_phone,
-            travel_date, number_of_guests, adults, children, special_requests,
+            travel_date, number_of_guests, adults, children, infants, special_requests,
             total_price, currency, status, payment_status, ip_address, user_agent
         ) VALUES (
             :tour_id, :booking_reference, :customer_name, :customer_email, :customer_phone,
-            :travel_date, :number_of_guests, :adults, :children, :special_requests,
+            :travel_date, :number_of_guests, :adults, :children, :infants, :special_requests,
             :total_price, :currency, :status, :payment_status, :ip_address, :user_agent
         )";
 
@@ -163,8 +198,10 @@ class Booking {
         $stmt->bindParam(':customer_phone', $data['customer_phone']);
         $stmt->bindParam(':travel_date', $data['travel_date']);
         $stmt->bindParam(':number_of_guests', $data['number_of_guests'], PDO::PARAM_INT);
+        $infants = $data['infants'] ?? 0;
         $stmt->bindParam(':adults', $data['adults'], PDO::PARAM_INT);
         $stmt->bindParam(':children', $data['children'], PDO::PARAM_INT);
+        $stmt->bindParam(':infants', $infants, PDO::PARAM_INT);
         $stmt->bindParam(':special_requests', $data['special_requests']);
         $stmt->bindParam(':total_price', $data['total_price']);
         $stmt->bindParam(':currency', $data['currency']);
@@ -183,7 +220,8 @@ class Booking {
     /**
      * Update booking
      */
-    public function update($id, $data) {
+    public function update($id, $data)
+    {
         $query = "UPDATE {$this->table} SET
             status = :status,
             payment_status = :payment_status,
@@ -207,7 +245,8 @@ class Booking {
     /**
      * Confirm booking
      */
-    public function confirm($id, $adminId) {
+    public function confirm($id, $adminId)
+    {
         $query = "UPDATE {$this->table} SET
             status = 'confirmed',
             confirmed_by = :admin_id,
@@ -224,7 +263,8 @@ class Booking {
     /**
      * Cancel booking
      */
-    public function cancel($id, $reason = null) {
+    public function cancel($id, $reason = null)
+    {
         $query = "UPDATE {$this->table} SET
             status = 'cancelled',
             cancelled_at = NOW(),
@@ -242,7 +282,8 @@ class Booking {
      * Attach the Stripe Checkout Session the customer was just sent to.
      * Overwrites any previous session: an abandoned checkout is simply replaced.
      */
-    public function setPaymentSession($id, $sessionId) {
+    public function setPaymentSession($id, $sessionId)
+    {
         $query = "UPDATE {$this->table} SET payment_reference = :session_id WHERE id = :id";
 
         $stmt = $this->conn->prepare($query);
@@ -259,7 +300,8 @@ class Booking {
      * webhooks, and a duplicate delivery must not re-trigger the receipt email.
      * Returns true only for the delivery that actually flipped the row.
      */
-    public function markPaid($id, $paymentIntentId, $method = 'stripe') {
+    public function markPaid($id, $paymentIntentId, $method = 'stripe')
+    {
         $query = "UPDATE {$this->table} SET
             payment_status = 'paid',
             payment_method = :method,
@@ -279,7 +321,8 @@ class Booking {
     /**
      * Get booking statistics
      */
-    public function getStats() {
+    public function getStats()
+    {
         $query = "SELECT
             COUNT(*) as total_bookings,
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_bookings,

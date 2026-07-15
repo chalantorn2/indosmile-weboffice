@@ -144,6 +144,7 @@ CREATE TABLE `bookings` (
   `number_of_guests` int(11) NOT NULL DEFAULT 1,
   `adults` int(11) DEFAULT 1,
   `children` int(11) DEFAULT 0,
+  `infants` int(11) DEFAULT 0,
   `special_requests` text DEFAULT NULL,
   `total_price` decimal(10,2) NOT NULL,
   `currency` varchar(10) DEFAULT 'THB',

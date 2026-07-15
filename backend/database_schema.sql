@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS `bookings` (
   `number_of_guests` INT(11) NOT NULL DEFAULT 1,
   `adults` INT(11) DEFAULT 1,
   `children` INT(11) DEFAULT 0,
+  `infants` INT(11) DEFAULT 0,
   `special_requests` TEXT NULL,
   `total_price` DECIMAL(10, 2) NOT NULL,
   `currency` VARCHAR(10) DEFAULT 'THB',

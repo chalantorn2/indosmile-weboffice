@@ -150,13 +150,20 @@ function handlePostRequest($bookingModel, $tourModel)
     // Calculate total price
     $adults = isset($input['adults']) ? (int)$input['adults'] : (int)$input['number_of_guests'];
     $children = isset($input['children']) ? (int)$input['children'] : 0;
+    $infants = isset($input['infants']) ? (int)$input['infants'] : 0;
     $adultPrice = floatval($tour['adult_price']);
     $childPrice = isset($tour['child_price']) ? floatval($tour['child_price']) : 0;
+    // Infants travel free and are not counted toward the guest total.
     $totalPrice = ($adults * $adultPrice) + ($children * $childPrice);
     $numberOfGuests = $adults + $children;
 
-    // Generate booking reference
+    // Generate booking reference, retrying on the rare same-day collision (2 hex = 256/day).
     $bookingReference = generateBookingReference();
+    $attempts = 0;
+    while ($bookingModel->getByReference($bookingReference) && $attempts < 20) {
+        $bookingReference = generateBookingReference();
+        $attempts++;
+    }
 
     // Get client IP and user agent
     $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
@@ -173,6 +180,7 @@ function handlePostRequest($bookingModel, $tourModel)
         'number_of_guests' => $numberOfGuests,
         'adults' => isset($input['adults']) ? (int)$input['adults'] : $numberOfGuests,
         'children' => isset($input['children']) ? (int)$input['children'] : 0,
+        'infants' => $infants,
         'special_requests' => isset($input['special_requests']) ? sanitizeInput($input['special_requests']) : null,
         'total_price' => $totalPrice,
         'currency' => $tour['currency'],

@@ -330,7 +330,8 @@ export default function BookingStatus() {
             <Detail label="Travel date" value={formatDate(booking.travel_date)} />
             <Detail label="Guests" value={
               `${booking.adults} adult${booking.adults === 1 ? "" : "s"}` +
-              (booking.children > 0 ? `, ${booking.children} child${booking.children === 1 ? "" : "ren"}` : "")
+              (booking.children > 0 ? `, ${booking.children} child${booking.children === 1 ? "" : "ren"}` : "") +
+              (booking.infants > 0 ? `, ${booking.infants} infant${booking.infants === 1 ? "" : "s"}` : "")
             } />
             <Detail label="Booked by" value={booking.customer_name} />
             <Detail label="Contact" value={booking.customer_email} />

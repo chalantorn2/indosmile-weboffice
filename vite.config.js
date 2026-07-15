@@ -10,16 +10,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      // Admin panel is PHP (index.php + partials/modals), so it is served by the
-      // PHP built-in server started via `npm run dev:php`.
-      "/admin": {
-        target: PHP_SERVER,
-        changeOrigin: true,
-        rewrite: (path) =>
-          /^\/admin\/?(\?|$)/.test(path)
-            ? path.replace(/^\/admin\/?/, "/backend/admin/index.php")
-            : path.replace(/^\/admin\//, "/backend/admin/"),
-      },
+      // NOTE: /admin is now owned by the React admin (src/pages/admin/*).
+      // The legacy PHP admin is being migrated module-by-module; while that is in
+      // progress it stays reachable directly at /backend/admin/index.php.
       "/backend/admin": {
         target: PHP_SERVER,
         changeOrigin: true,

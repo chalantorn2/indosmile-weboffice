@@ -25,6 +25,7 @@ function bookingDetailRows($booking, $tour)
         'Travel Date'  => date('d M Y', strtotime($booking['travel_date'])),
         'Adults'       => $booking['adults'],
         'Children'     => $booking['children'] > 0 ? $booking['children'] : null,
+        'Infants'      => ($booking['infants'] ?? 0) > 0 ? $booking['infants'] : null,
         'Total Guests' => $booking['number_of_guests'],
         'Total Price'  => number_format((float)$booking['total_price'], 0) . ' ' . ($booking['currency'] ?? 'THB'),
     ];

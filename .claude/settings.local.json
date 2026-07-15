@@ -4,7 +4,13 @@
       "Bash(dir:*)",
       "Bash(findstr:*)",
       "WebFetch(domain:www.bookingwindow.com)",
-      "WebFetch(domain:indosmilesouthservices.com)"
+      "WebFetch(domain:indosmilesouthservices.com)",
+      "Bash(npx eslint *)",
+      "Bash(grep -n 'case\\\\|function\\\\|$_GET\\\\|PATH_INFO\\\\|method\\\\|action' backend/api/tours.php)",
+      "Bash(npm run *)",
+      "Bash(node -e \"const l=require\\('lucide-react'\\); console.log\\('Building2:',!!l.Building2,'Share2:',!!l.Share2,'Wallet:',!!l.Wallet,'BellRing:',!!l.BellRing\\)\")",
+      "Bash(npm install *)",
+      "Bash(npx vite *)"
     ],
     "deny": [],
     "ask": []

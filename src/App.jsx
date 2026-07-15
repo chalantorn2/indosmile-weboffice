@@ -24,19 +24,37 @@ import AgentProfile from "./pages/agent/AgentProfile";
 import AgentPassword from "./pages/agent/AgentPassword";
 import StripeTest from "./pages/StripeTest";
 import ChillPayTest from "./pages/ChillPayTest";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminTours from "./pages/admin/Tours";
+import AdminBookings from "./pages/admin/Bookings";
+import AdminAgents from "./pages/admin/Agents";
+import AdminUsers from "./pages/admin/Users";
+import AdminSettings from "./pages/admin/Settings";
+import AdminShows from "./pages/admin/Shows";
+import AdminBlog from "./pages/admin/Blog";
+import AdminHotels from "./pages/admin/Hotels";
+import AdminTransfers from "./pages/admin/Transfers";
+import AdminMessages from "./pages/admin/Messages";
+import AdminImport from "./pages/admin/Import";
 
 // Signed-in agents get their own chrome (AgentLayout), not the customer nav.
 // /agent and /agent/login stay on the public site — they are how an agent gets in.
 const AGENT_PORTAL_PATH = /^\/agent\/(tours|profile|password)\b/;
+// The admin owns its own chrome (AdminLayout / AdminLogin) — never the customer nav.
+const ADMIN_PATH = /^\/admin\b/;
 
 function App() {
   const { pathname } = useLocation();
   const inAgentPortal = AGENT_PORTAL_PATH.test(pathname);
+  const inAdmin = ADMIN_PATH.test(pathname);
+  const hideCustomerChrome = inAgentPortal || inAdmin;
 
   return (
     <div className="min-h-screen bg-white">
       <ScrollToTop />
-      {!inAgentPortal && <Header />}
+      {!hideCustomerChrome && <Header />}
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -66,12 +84,31 @@ function App() {
           </Route>
           <Route path="/agent/dashboard" element={<Navigate to="/agent/tours" replace />} />
 
+          {/* Admin — AdminLayout guards the session for every child.
+              Migration is module-by-module: new React modules become child routes
+              here, the rest still open the legacy PHP admin from the sidebar. */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="tours" element={<AdminTours />} />
+            <Route path="shows" element={<AdminShows />} />
+            <Route path="blog" element={<AdminBlog />} />
+            <Route path="hotels" element={<AdminHotels />} />
+            <Route path="transfers" element={<AdminTransfers />} />
+            <Route path="messages" element={<AdminMessages />} />
+            <Route path="import" element={<AdminImport />} />
+            <Route path="bookings" element={<AdminBookings />} />
+            <Route path="agents" element={<AdminAgents />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
+
           <Route path="/stripe-test" element={<StripeTest />} />
           <Route path="/chillpay-test" element={<ChillPayTest />} />
           <Route path="/contact" element={<Navigate to="/about#contact" replace />} />
         </Routes>
       </main>
-      {!inAgentPortal && <Footer />}
+      {!hideCustomerChrome && <Footer />}
     </div>
   );
 }
