@@ -1,5 +1,6 @@
 import js from '@eslint/js'
 import globals from 'globals'
+import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
@@ -22,8 +23,13 @@ export default defineConfig([
         sourceType: 'module',
       },
     },
+    plugins: { react },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Without this, no-unused-vars cannot see identifiers that are only used
+      // inside JSX. Capitalized imports slipped through on varsIgnorePattern
+      // alone; lowercase namespaces like `motion` (<motion.div>) did not.
+      'react/jsx-uses-vars': 'error',
     },
   },
 ])

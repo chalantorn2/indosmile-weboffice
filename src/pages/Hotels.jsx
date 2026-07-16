@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Reveal, RevealGroup, RevealItem } from "../components/Reveal";
 
 const API_BASE = '/backend/api';
 
@@ -121,14 +122,14 @@ export default function Hotels() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Page Header */}
-        <div className="text-center mb-12">
+        <Reveal className="text-center mb-12">
           <h1 className="font-heading text-4xl md:text-5xl text-navy mb-4">
             Premium Hotels & Resorts
           </h1>
           <p className="font-body text-lg text-gray-600 max-w-2xl mx-auto">
             Find the perfect stay for your tropical vacation. From luxury pool villas to family-friendly beach resorts.
           </p>
-        </div>
+        </Reveal>
 
         {loading ? (
           <div className="text-center py-16">
@@ -231,9 +232,16 @@ export default function Hotels() {
 
             {filteredAndSortedHotels.length > 0 ? (
               <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Keyed on the discrete controls so paging, sorting or changing
+                  a dropdown re-runs the cascade. searchQuery is deliberately
+                  excluded: it filters on every keystroke, and remounting there
+                  would make the grid flash on each character typed. */}
+              <RevealGroup
+                key={`${currentPage}|${selectedStars}|${selectedDestination}|${sortBy}`}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+              >
                 {paginatedHotels.map((hotel) => (
-                  <div key={hotel.id} onClick={() => navigate(`/hotels/${hotel.id}`)} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-400 group cursor-pointer">
+                  <RevealItem lift key={hotel.id} onClick={() => navigate(`/hotels/${hotel.id}`)} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-400 group cursor-pointer">
                     <div className="relative h-64 overflow-hidden">
                       <img
                         src={hotel.image}
@@ -282,9 +290,9 @@ export default function Hotels() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </RevealItem>
                 ))}
-              </div>
+              </RevealGroup>
 
               {totalPages > 1 && (
                 <div className="mt-12 flex items-center justify-center gap-2">

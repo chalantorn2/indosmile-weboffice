@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { motion } from "motion/react";
+import { fadeFromLeft, fadeFromRight, viewportOnce } from "../lib/motion";
 
 export default function AboutSection() {
   return (
@@ -6,7 +8,13 @@ export default function AboutSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Image */}
-          <div className="order-2 lg:order-1">
+          <motion.div
+            variants={fadeFromLeft}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportOnce}
+            className="order-2 lg:order-1"
+          >
             <div className="rounded-lg overflow-hidden shadow-xl">
               <img
                 src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800"
@@ -14,10 +22,16 @@ export default function AboutSection() {
                 className="w-full h-[400px] object-cover"
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Content */}
-          <div className="order-1 lg:order-2">
+          <motion.div
+            variants={fadeFromRight}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportOnce}
+            className="order-1 lg:order-2"
+          >
             <h2 className="font-heading text-4xl md:text-5xl text-navy mb-6">
               About Indo Smile South Services
             </h2>
@@ -61,7 +75,7 @@ export default function AboutSection() {
                 />
               </svg>
             </Link>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

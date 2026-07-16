@@ -1,3 +1,6 @@
+import { motion } from 'motion/react';
+import { fadeUp, stagger, viewportOnce } from '../lib/motion';
+
 export default function WhyChooseUs() {
   const features = [
     {
@@ -52,20 +55,33 @@ export default function WhyChooseUs() {
     <section className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-16">
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportOnce}
+          className="text-center mb-16"
+        >
           <h2 className="font-heading text-4xl md:text-5xl text-navy mb-4">
             Why Choose Us
           </h2>
           <p className="font-body text-lg text-gray-600 max-w-2xl mx-auto">
             Your success is our commitment
           </p>
-        </div>
+        </motion.div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportOnce}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
           {features.map((feature, index) => (
-            <div
+            <motion.div
               key={index}
+              variants={fadeUp}
               className="flex flex-col items-center text-center p-6 rounded-lg hover:bg-light-gray transition-colors duration-200"
             >
               {/* Icon */}
@@ -82,9 +98,9 @@ export default function WhyChooseUs() {
               <p className="font-body text-gray-600 leading-relaxed">
                 {feature.description}
               </p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

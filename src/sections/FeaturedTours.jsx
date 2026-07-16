@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
+import { fadeUp, stagger, viewportOnce } from '../lib/motion';
 
 const API_BASE = '/backend/api';
+
+// Cards animate on tab switch, not on scroll, so they share one set of props.
+const cardMotion = {
+  variants: fadeUp,
+  whileHover: { y: -6, transition: { duration: 0.2 } },
+};
 
 const TRANSFER_IMAGE =
   'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800';
@@ -59,8 +67,9 @@ export default function FeaturedTours() {
 
   const renderTours = () =>
     tours.map((t) => (
-      <div
+      <motion.div
         key={t.id}
+        {...cardMotion}
         onClick={() => navigate(`/booking-detail/${t.id}`)}
         className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer group"
       >
@@ -90,13 +99,14 @@ export default function FeaturedTours() {
             View Details
           </span>
         </div>
-      </div>
+      </motion.div>
     ));
 
   const renderHotels = () =>
     hotels.map((h) => (
-      <div
+      <motion.div
         key={h.id}
+        {...cardMotion}
         onClick={() => navigate(`/hotels/${h.id}`)}
         className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer group"
       >
@@ -133,15 +143,16 @@ export default function FeaturedTours() {
             View Hotel
           </span>
         </div>
-      </div>
+      </motion.div>
     ));
 
   const renderTransfers = () =>
     routes.map((r) => {
       const vehicleCount = (r.prices || []).length;
       return (
-        <div
+        <motion.div
           key={r.id}
+          {...cardMotion}
           onClick={() => navigate('/transfer')}
           className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer group"
         >
@@ -190,7 +201,7 @@ export default function FeaturedTours() {
               Book Transfer
             </span>
           </div>
-        </div>
+        </motion.div>
       );
     });
 
@@ -210,14 +221,20 @@ export default function FeaturedTours() {
     <section className="py-20 bg-light-gray">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-12">
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportOnce}
+          className="text-center mb-12"
+        >
           <h2 className="font-heading text-4xl md:text-5xl text-navy mb-4">
             Featured Services
           </h2>
           <p className="font-body text-lg text-gray-600 max-w-2xl mx-auto">
             Explore our curated selection of tours, transfers, and hotels
           </p>
-        </div>
+        </motion.div>
 
         {/* Tabs */}
         <div className="flex flex-wrap justify-center gap-4 mb-12">
@@ -225,13 +242,22 @@ export default function FeaturedTours() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 rounded-lg font-body font-semibold transition-all duration-200 ${
+              className={`relative px-6 py-3 rounded-lg font-body font-semibold transition-colors duration-200 ${
                 activeTab === tab.id
-                  ? 'bg-yellow text-navy shadow-md'
+                  ? 'text-navy'
                   : 'bg-white text-navy hover:bg-gray-100'
               }`}
             >
-              {tab.label}
+              {/* The active pill is one shared element that slides between tabs
+                  (layoutId), instead of three that snap on/off. */}
+              {activeTab === tab.id && (
+                <motion.span
+                  layoutId="featured-tab-pill"
+                  className="absolute inset-0 bg-yellow rounded-lg shadow-md"
+                  transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                />
+              )}
+              <span className="relative">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -247,9 +273,20 @@ export default function FeaturedTours() {
             {current.empty}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {current.render()}
-          </div>
+          // mode="wait" so the outgoing set clears before the new one staggers
+          // in — overlapping them reads as the grid glitching, not switching.
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              variants={stagger}
+              initial="hidden"
+              animate="visible"
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            >
+              {current.render()}
+            </motion.div>
+          </AnimatePresence>
         )}
       </div>
     </section>

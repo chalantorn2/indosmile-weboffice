@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { motion } from "motion/react";
+import { fadeUp, stagger, viewportOnce } from "../lib/motion";
 
 export default function ServiceCards() {
   const services = [
@@ -92,20 +94,34 @@ export default function ServiceCards() {
     <section className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-16">
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportOnce}
+          className="text-center mb-16"
+        >
           <h2 className="font-heading text-4xl md:text-5xl text-navy mb-4">
             Our Services
           </h2>
           <p className="font-body text-lg text-gray-600 max-w-2xl mx-auto">
             Comprehensive travel solutions tailored to your needs
           </p>
-        </div>
+        </motion.div>
 
         {/* Service Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportOnce}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+        >
           {services.map((service, index) => (
-            <div
+            <motion.div
               key={index}
+              variants={fadeUp}
+              whileHover={{ y: -6, transition: { duration: 0.2 } }}
               className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 border border-gray-100"
             >
               {/* Icon */}
@@ -141,9 +157,9 @@ export default function ServiceCards() {
                   />
                 </svg>
               </Link>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

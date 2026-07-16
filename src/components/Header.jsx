@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -155,8 +156,19 @@ export default function Header() {
         </div>
 
         {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="xl:hidden py-4 border-t border-gray-200">
+        <AnimatePresence initial={false}>
+          {isMenuOpen && (
+          <motion.div
+            key="mobile-menu"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            // height: auto animates by measuring, so the panel must clip while
+            // it collapses or the links spill past the header.
+            className="xl:hidden overflow-hidden"
+          >
+          <div className="py-4 border-t border-gray-200">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
 
@@ -200,7 +212,9 @@ export default function Header() {
               Contact Us
             </button>
           </div>
-        )}
+          </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
     </header>
   );
