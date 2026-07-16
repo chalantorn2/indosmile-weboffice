@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, formatCurrency } from "./lib/adminApi";
+import { PriceInput } from "./lib/formUi";
 
 /**
  * Contract rates for one agent. Rates are a markup on top of our net (cost) price,
@@ -234,11 +235,11 @@ export default function AgentRatesModal({ agent, onClose, onToast }) {
             </div>
             <div className="w-36">
               <label className="block font-body text-sm font-semibold text-navy mb-1.5">Adult markup</label>
-              <input type="number" min="0" step="1" value={adultMarkup} onChange={(e) => setAdultMarkup(e.target.value)} placeholder="150" className="w-full px-3 py-2.5 rounded-lg border border-gray-200 font-body text-sm focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none" />
+              <PriceInput value={adultMarkup} onChange={setAdultMarkup} placeholder="150" className="w-full px-3 py-2.5 rounded-lg border border-gray-200 font-body text-sm focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none" />
             </div>
             <div className="w-36">
               <label className="block font-body text-sm font-semibold text-navy mb-1.5">Child markup</label>
-              <input type="number" min="0" step="1" value={childMarkup} onChange={(e) => setChildMarkup(e.target.value)} placeholder="100" className="w-full px-3 py-2.5 rounded-lg border border-gray-200 font-body text-sm focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none" />
+              <PriceInput value={childMarkup} onChange={setChildMarkup} placeholder="100" className="w-full px-3 py-2.5 rounded-lg border border-gray-200 font-body text-sm focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none" />
             </div>
             <div className="flex gap-3 ml-auto">
               <button type="button" onClick={remove} disabled={saving} className="px-5 py-2.5 font-body text-sm font-semibold text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 transition-all disabled:opacity-50">Remove selected</button>

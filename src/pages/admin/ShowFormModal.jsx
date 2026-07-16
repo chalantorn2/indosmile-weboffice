@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiJson, uploadFile, uploadFiles } from "./lib/adminApi";
-import { inputClass, Field, SectionCard } from "./lib/formUi";
+import { inputClass, Field, MarginHint, PriceInput, SectionCard } from "./lib/formUi";
 
 const GALLERY_MAX = 30;
 const DAYS = [
@@ -108,6 +108,8 @@ export default function ShowFormModal({ show, initialData, destinations, onClose
     setForm((f) => ({ ...f, [key]: value }));
   };
 
+  const setValue = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
+
   const onMainImage = async (files) => {
     if (!files?.[0]) return;
     setMainUploading(true);
@@ -206,6 +208,7 @@ export default function ShowFormModal({ show, initialData, destinations, onClose
       what_to_bring: form.what_to_bring ? linesToArray(form.what_to_bring) : null,
       important_notes: form.important_notes || null,
       source_tour_id: seed?.source_tour_id ?? null,
+      source_tour_ids: Array.isArray(seed?.source_tour_ids) ? seed.source_tour_ids : undefined,
       source_supplier_name: seed?.source_supplier_name ?? null,
     };
   };
@@ -296,18 +299,20 @@ export default function ShowFormModal({ show, initialData, destinations, onClose
               <SectionCard title="Pricing (internal net — never shown on website)">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="Net Adult Price">
-                    <input type="number" step="0.01" className={inputClass} value={form.net_adult_price} onChange={set("net_adult_price")} placeholder="0.00" />
+                    <PriceInput value={form.net_adult_price} onChange={setValue("net_adult_price")} />
                   </Field>
                   <Field label="Net Child Price">
-                    <input type="number" step="0.01" className={inputClass} value={form.net_child_price} onChange={set("net_child_price")} placeholder="0.00" />
+                    <PriceInput value={form.net_child_price} onChange={setValue("net_child_price")} />
                   </Field>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                   <Field label="Selling Adult Price" required>
-                    <input type="number" step="0.01" className={inputClass} value={form.adult_price} onChange={set("adult_price")} placeholder="0.00" />
+                    <PriceInput value={form.adult_price} onChange={setValue("adult_price")} />
+                    <MarginHint net={form.net_adult_price} selling={form.adult_price} />
                   </Field>
                   <Field label="Selling Child Price">
-                    <input type="number" step="0.01" className={inputClass} value={form.child_price} onChange={set("child_price")} placeholder="0.00" />
+                    <PriceInput value={form.child_price} onChange={setValue("child_price")} />
+                    <MarginHint net={form.net_child_price} selling={form.child_price} />
                   </Field>
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-100">
@@ -317,10 +322,10 @@ export default function ShowFormModal({ show, initialData, destinations, onClose
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="Park Fee — Adult">
-                      <input type="number" step="0.01" className={inputClass} value={form.park_fee_adult} onChange={set("park_fee_adult")} placeholder="0.00" />
+                      <PriceInput value={form.park_fee_adult} onChange={setValue("park_fee_adult")} />
                     </Field>
                     <Field label="Park Fee — Child">
-                      <input type="number" step="0.01" className={inputClass} value={form.park_fee_child} onChange={set("park_fee_child")} placeholder="0.00" />
+                      <PriceInput value={form.park_fee_child} onChange={setValue("park_fee_child")} />
                     </Field>
                   </div>
                 </div>
@@ -408,7 +413,7 @@ export default function ShowFormModal({ show, initialData, destinations, onClose
                   {seatZones.map((z, i) => (
                     <div key={i} className="grid grid-cols-12 gap-2 items-center">
                       <input className={`${inputClass} col-span-5`} value={z.name} onChange={(e) => setSeatZones((arr) => arr.map((x, idx) => (idx === i ? { ...x, name: e.target.value } : x)))} placeholder="Zone name (e.g. VIP)" />
-                      <input type="number" step="0.01" className={`${inputClass} col-span-3`} value={z.price} onChange={(e) => setSeatZones((arr) => arr.map((x, idx) => (idx === i ? { ...x, price: e.target.value } : x)))} placeholder="Price" />
+                      <PriceInput className={`${inputClass} col-span-3`} value={z.price} onChange={(v) => setSeatZones((arr) => arr.map((x, idx) => (idx === i ? { ...x, price: v } : x)))} placeholder="Price" />
                       <input type="number" className={`${inputClass} col-span-3`} value={z.capacity} onChange={(e) => setSeatZones((arr) => arr.map((x, idx) => (idx === i ? { ...x, capacity: e.target.value } : x)))} placeholder="Capacity" />
                       <button type="button" onClick={() => setSeatZones((arr) => arr.filter((_, idx) => idx !== i))} className="col-span-1 px-2 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-all">✕</button>
                     </div>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiGet, apiMutate, apiJson, formatCurrency, uploadFile } from "./lib/adminApi";
-import { inputClass, Field } from "./lib/formUi";
+import { inputClass, Field, PriceInput } from "./lib/formUi";
 
 const TABS = [
   { key: "routes", label: "Routes" },
@@ -217,7 +217,7 @@ function RouteModal({ item, locations, vehicles, onClose, onSaved }) {
                       <div className="font-body text-sm font-semibold text-navy">{v.name}</div>
                       <div className="font-body text-xs text-gray-400">Up to {v.max_passengers} pax · {v.max_luggage ?? 0} bags</div>
                     </div>
-                    <input type="number" min="0" step="0.01" placeholder="0.00" value={prices[v.id] ?? ""} onChange={(e) => setPrices((p) => ({ ...p, [v.id]: e.target.value }))} className="w-32 text-right px-3 py-2 rounded-lg border border-gray-200 font-body text-sm focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none" />
+                    <PriceInput value={prices[v.id] ?? ""} onChange={(val) => setPrices((p) => ({ ...p, [v.id]: val }))} className="w-32 text-right px-3 py-2 rounded-lg border border-gray-200 font-body text-sm focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none" />
                     <span className="text-xs text-gray-400">THB</span>
                   </div>
                 ))}

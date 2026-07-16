@@ -15,6 +15,49 @@ export function Field({ label, required, hint, children }) {
   );
 }
 
+// Prices are whole baht, so the field holds digits only and shows them grouped.
+// onChange receives the raw digit string (no commas), not an event.
+export function PriceInput({ value, onChange, className = inputClass, placeholder = "0", ...props }) {
+  const digits = toDigits(value);
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      className={className}
+      placeholder={placeholder}
+      value={digits && Number(digits).toLocaleString("en-US")}
+      onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
+      {...props}
+    />
+  );
+}
+
+function toDigits(value) {
+  if (value === "" || value === null || value === undefined) return "";
+  const n = Math.round(Number(String(value).replace(/,/g, "")));
+  return Number.isNaN(n) ? "" : String(Math.abs(n));
+}
+
+// Profit a selling price makes over its net cost. Stays hidden until both sides
+// are filled in, so a half-typed form doesn't flash a scary loss.
+export function MarginHint({ net, selling }) {
+  const netN = Number(String(net ?? "").replace(/,/g, ""));
+  const sellN = Number(String(selling ?? "").replace(/,/g, ""));
+  if (!netN || !sellN || Number.isNaN(netN) || Number.isNaN(sellN)) return null;
+
+  const profit = Math.round(sellN - netN);
+  const margin = Math.round((profit / sellN) * 100);
+  const tone =
+    profit > 0 ? "text-green-600" : profit < 0 ? "text-red-500" : "text-gray-400";
+
+  return (
+    <p className={`font-body text-xs mt-1 ${tone}`}>
+      {profit >= 0 ? "+" : "−"}฿{Math.abs(profit).toLocaleString("en-US")} over net
+      {profit !== 0 && ` · ${margin}% margin`}
+    </p>
+  );
+}
+
 export function SectionCard({ title, right, children }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 mb-5">

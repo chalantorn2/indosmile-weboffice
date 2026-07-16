@@ -10,6 +10,7 @@ const API_BASE = "/backend/api";
 const NAV_ITEMS = [
   { key: "overview", label: "Overview", to: "/admin" },
   { key: "bookings", label: "Bookings", to: "/admin/bookings" },
+  { key: "payment-link", label: "Payment Link", to: "/admin/payment-link" },
   { key: "tours", label: "Tours", to: "/admin/tours" },
   { key: "shows", label: "Shows", to: "/admin/shows" },
   { key: "hotels", label: "Hotels", to: "/admin/hotels" },
@@ -23,7 +24,7 @@ const NAV_ITEMS = [
 ];
 
 const navClass = ({ isActive }) =>
-  `shrink-0 px-4 py-3 rounded-xl font-body font-semibold text-sm transition-all duration-200 ${
+  `shrink-0 px-4 py-2 rounded-xl font-body font-semibold text-sm transition-all duration-200 ${
     isActive
       ? "bg-yellow text-navy"
       : "text-gray-300 hover:bg-white/10 hover:text-white"
@@ -88,8 +89,8 @@ export default function AdminLayout() {
       <Toaster position="top-right" richColors closeButton />
     <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-light-gray flex flex-col lg:flex-row">
       {/* Sidebar — locked full height on desktop; only the content column scrolls */}
-      <aside className="lg:w-56 lg:shrink-0 bg-navy lg:h-screen lg:overflow-y-auto">
-        <div className="p-5 lg:p-6">
+      <aside className="lg:w-56 lg:shrink-0 bg-navy lg:h-screen lg:flex lg:flex-col">
+        <div className="p-5 lg:p-6 lg:pb-4 lg:shrink-0">
           <div className="flex items-center justify-between lg:block">
             <div className="flex items-center gap-2.5 min-w-0">
               <img src="/Final Logo.png" alt="Logo" className="h-8 shrink-0" />
@@ -110,18 +111,22 @@ export default function AdminLayout() {
               Log Out
             </button>
           </div>
+        </div>
 
-          <nav className="mt-8 flex lg:flex-col gap-2 overflow-x-auto">
-            {NAV_ITEMS.map((item) => (
-              <NavLink key={item.key} to={item.to} end className={navClass}>
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+        {/* Nav is the only scroll container in the sidebar, so the logo above it
+            and the Log Out button below it stay put on desktop. */}
+        <nav className="mt-3 px-5 pb-5 lg:mt-0 lg:px-6 lg:pb-0 lg:flex-1 lg:min-h-0 flex lg:flex-col gap-2 lg:gap-1 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto">
+          {NAV_ITEMS.map((item) => (
+            <NavLink key={item.key} to={item.to} end className={navClass}>
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
 
+        <div className="hidden lg:block lg:shrink-0 p-6 pt-4">
           <button
             onClick={handleLogout}
-            className="hidden lg:block w-full mt-8 border-2 border-white/30 text-white px-4 py-3 rounded-xl font-body font-semibold hover:bg-white hover:text-navy transition-all duration-300"
+            className="w-full border-2 border-white/30 text-white px-4 py-2.5 rounded-xl font-body font-semibold hover:bg-white hover:text-navy transition-all duration-300"
           >
             Log Out
           </button>

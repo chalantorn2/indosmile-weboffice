@@ -209,6 +209,44 @@ class Show {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Record every Contract Rate source row a combined show was imported from.
+     * $sources: array of ['source_tour_id' => int, 'source_supplier_name' => ?string].
+     */
+    public function addSources($showId, $sources) {
+        $query = "INSERT INTO show_sources (show_id, source_tour_id, source_supplier_name)
+                  VALUES (:show_id, :source_tour_id, :source_supplier_name)";
+        $stmt = $this->conn->prepare($query);
+        foreach ($sources as $s) {
+            $stmt->execute([
+                ':show_id' => (int)$showId,
+                ':source_tour_id' => (int)$s['source_tour_id'],
+                ':source_supplier_name' => $s['source_supplier_name'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Return the id of a show already imported from any of the given source tour
+     * ids — checking both the single-column link and the multi-source link table —
+     * or null if none of them has been imported yet.
+     */
+    public function findBySourceTourIds($sourceTourIds) {
+        $ids = array_values(array_unique(array_map('intval', $sourceTourIds)));
+        if (empty($ids)) {
+            return null;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $query = "SELECT id FROM {$this->table} WHERE source_tour_id IN ($placeholders)
+                  UNION
+                  SELECT show_id AS id FROM show_sources WHERE source_tour_id IN ($placeholders)
+                  LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute(array_merge($ids, $ids));
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? (int)$row['id'] : null;
+    }
+
     public function update($id, $data) {
         $query = "UPDATE {$this->table} SET
             name = :name,

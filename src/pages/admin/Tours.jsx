@@ -14,6 +14,24 @@ import TourQRModal from "./TourQRModal";
 const columnHelper = createColumnHelper();
 
 /**
+ * Keyed on the mode so React remounts it and replays the animation on every
+ * toggle — most tours have net === selling, and without the motion the switch
+ * looks like it did nothing.
+ */
+function PriceCell({ value, showNet }) {
+  return (
+    <span
+      key={showNet ? "net" : "selling"}
+      className={`animate-price-swap inline-block font-body tabular-nums ${
+        showNet ? "text-navy font-semibold" : "text-gray-700"
+      }`}
+    >
+      {formatCurrency(value)}
+    </span>
+  );
+}
+
+/**
  * Island Tours admin list. Shows & Adventures live in their own module, matching
  * how the legacy admin split them (app-tours.js vs app-shows.js).
  */
@@ -23,11 +41,27 @@ export default function Tours() {
   const [creating, setCreating] = useState(false);
   const [qrTour, setQrTour] = useState(null); // tour object = show QR modal
   const [showNet, setShowNet] = useState(false); // false = selling price, true = net price
+  const [search, setSearch] = useState("");
+  const [province, setProvince] = useState(""); // "" = all destinations
 
   const { data: tours = [], isPending } = useQuery({
     queryKey: ["tours", "inbound"],
     queryFn: () => apiGet("tours.php?type=inbound&active=").then((d) => d.items || []),
   });
+
+  const provinceOptions = useMemo(
+    () => [...new Set(tours.map((t) => t.destination).filter(Boolean))].sort(),
+    [tours]
+  );
+
+  const filteredTours = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return tours.filter((t) => {
+      if (province && t.destination !== province) return false;
+      if (q && !(`${t.name} ${t.destination || ""}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [tours, search, province]);
 
   const closeModal = () => {
     setModalTour(null);
@@ -75,15 +109,18 @@ export default function Tours() {
         cell: (info) => <span className="font-semibold text-navy">{info.getValue()}</span>,
       }),
       columnHelper.accessor("destination", { header: "Destination" }),
+      // The id must differ per mode: rows are memoized on `data` alone, so a row
+      // keeps its _valuesCache across a toggle and a reused id would keep serving
+      // the price from the previous mode.
       columnHelper.accessor(showNet ? "net_adult_price" : "adult_price", {
-        id: "adt_price",
+        id: showNet ? "net_adt_price" : "adt_price",
         header: showNet ? "Net ADT" : "ADT",
-        cell: (info) => formatCurrency(info.getValue()),
+        cell: (info) => <PriceCell value={info.getValue()} showNet={showNet} />,
       }),
       columnHelper.accessor(showNet ? "net_child_price" : "child_price", {
-        id: "chd_price",
+        id: showNet ? "net_chd_price" : "chd_price",
         header: showNet ? "Net CHD" : "CHD",
-        cell: (info) => formatCurrency(info.getValue()),
+        cell: (info) => <PriceCell value={info.getValue()} showNet={showNet} />,
       }),
       columnHelper.display({
         id: "status",
@@ -136,7 +173,7 @@ export default function Tours() {
     [showNet]
   );
 
-  const table = useReactTable({ data: tours, columns, getCoreRowModel: getCoreRowModel() });
+  const table = useReactTable({ data: filteredTours, columns, getCoreRowModel: getCoreRowModel() });
 
   const modalOpen = creating || modalTour !== null;
 
@@ -146,7 +183,7 @@ export default function Tours() {
         <div>
           <h1 className="font-heading text-4xl text-navy">Island Tours</h1>
           <p className="font-body text-sm text-gray-500 mt-1">
-            {tours.length} tour{tours.length === 1 ? "" : "s"}
+            {filteredTours.length} of {tours.length} tour{tours.length === 1 ? "" : "s"}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -178,6 +215,26 @@ export default function Tours() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search tours..."
+          className="flex-1 min-w-[200px] px-4 py-2.5 font-body text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy/20 focus:border-navy focus:outline-none"
+        />
+        <select
+          value={province}
+          onChange={(e) => setProvince(e.target.value)}
+          className="px-4 py-2.5 font-body text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy/20 focus:border-navy focus:outline-none bg-white"
+        >
+          <option value="">All destinations</option>
+          {provinceOptions.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
         {isPending ? (
           <p className="p-6 font-body text-gray-500">Loading tours...</p>
@@ -186,6 +243,10 @@ export default function Tours() {
             <p className="font-body text-gray-500">
               No island tours yet. Click “Add New Island Tour” to create one.
             </p>
+          </div>
+        ) : filteredTours.length === 0 ? (
+          <div className="p-10 text-center">
+            <p className="font-body text-gray-500">No tours match your filters.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

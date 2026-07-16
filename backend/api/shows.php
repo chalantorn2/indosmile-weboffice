@@ -127,14 +127,28 @@ function handlePostRequest($showModel) {
 
     $data = buildShowData($input, $adminId);
 
-    // A Contract Rate tour may only be imported once
+    // A combined import carries several Contract Rate source rows (one per seat zone).
+    $sourceIds = isset($input['source_tour_ids']) && is_array($input['source_tour_ids'])
+        ? array_values(array_unique(array_map('intval', $input['source_tour_ids'])))
+        : [];
+
+    // A Contract Rate tour may only be imported once — check both single and combined links
     if ($data['source_tour_id'] && $showModel->getBySourceTourId($data['source_tour_id'])) {
         sendError('This Contract Rate tour has already been imported', 409);
+    }
+    if (!empty($sourceIds) && $showModel->findBySourceTourIds($sourceIds)) {
+        sendError('One of these Contract Rate tours has already been imported', 409);
     }
 
     try {
         $showId = $showModel->create($data);
         if ($showId) {
+            if (!empty($sourceIds)) {
+                $sources = array_map(function ($id) use ($data) {
+                    return ['source_tour_id' => $id, 'source_supplier_name' => $data['source_supplier_name'] ?? null];
+                }, $sourceIds);
+                $showModel->addSources($showId, $sources);
+            }
             $show = $showModel->getById($showId);
             decodeShowJsonFields($show);
             sendResponse($show, 201, 'Show created successfully');

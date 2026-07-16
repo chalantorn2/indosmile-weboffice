@@ -24,6 +24,7 @@ import AgentProfile from "./pages/agent/AgentProfile";
 import AgentPassword from "./pages/agent/AgentPassword";
 import StripeTest from "./pages/StripeTest";
 import ChillPayTest from "./pages/ChillPayTest";
+import PaymentResult from "./pages/PaymentResult";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminOverview from "./pages/admin/AdminOverview";
@@ -38,6 +39,7 @@ import AdminHotels from "./pages/admin/Hotels";
 import AdminTransfers from "./pages/admin/Transfers";
 import AdminMessages from "./pages/admin/Messages";
 import AdminImport from "./pages/admin/Import";
+import AdminPaymentLink from "./pages/admin/PaymentLink";
 
 // Signed-in agents get their own chrome (AgentLayout), not the customer nav.
 // /agent and /agent/login stay on the public site — they are how an agent gets in.
@@ -98,6 +100,7 @@ function App() {
             <Route path="messages" element={<AdminMessages />} />
             <Route path="import" element={<AdminImport />} />
             <Route path="bookings" element={<AdminBookings />} />
+            <Route path="payment-link" element={<AdminPaymentLink />} />
             <Route path="agents" element={<AdminAgents />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="settings" element={<AdminSettings />} />
@@ -105,6 +108,7 @@ function App() {
 
           <Route path="/stripe-test" element={<StripeTest />} />
           <Route path="/chillpay-test" element={<ChillPayTest />} />
+          <Route path="/payment-result" element={<PaymentResult />} />
           <Route path="/contact" element={<Navigate to="/about#contact" replace />} />
         </Routes>
       </main>

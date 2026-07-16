@@ -163,6 +163,20 @@ label[for] {
   animation: fadeIn 0.15s ease-out;
 }
 
+/* Price cells re-animate on every Selling/Net toggle so the switch reads as
+   applied even when both prices happen to be the same number. */
+@keyframes priceSwap {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-price-swap {
+  animation: priceSwap 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-price-swap { animation: none; }
+}
+
 /* ============================== */
 /* Blog Content Typography        */
 /* ============================== */

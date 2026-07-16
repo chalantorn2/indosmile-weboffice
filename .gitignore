@@ -15,6 +15,10 @@ dist-ssr
 # Secrets
 backend/config/secrets.php
 backend/config/config-backup.php
+deploy.secret.ps1
+
+# Local backups pulled from the server before deletions
+_server_backups/
 
 # Editor directories and files
 .vscode/*

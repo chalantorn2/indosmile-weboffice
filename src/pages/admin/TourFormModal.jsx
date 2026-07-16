@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiJson, uploadFile, uploadFiles } from "./lib/adminApi";
+import { MarginHint, PriceInput } from "./lib/formUi";
 import { THAI_DESTINATIONS } from "./lib/thaiDestinations";
 
 const GALLERY_MAX = 30;
@@ -7,8 +8,6 @@ const GALLERY_MAX = 30;
 const EMPTY = {
   name: "",
   destination: "",
-  duration_days: "",
-  duration_nights: "",
   net_adult_price: "",
   net_child_price: "",
   adult_price: "",
@@ -53,8 +52,6 @@ function tourToForm(tour) {
     ...EMPTY,
     name: tour.name || "",
     destination: tour.destination || "",
-    duration_days: tour.duration_days ?? "",
-    duration_nights: tour.duration_nights ?? "",
     net_adult_price: tour.net_adult_price ?? "",
     net_child_price: tour.net_child_price ?? "",
     adult_price: tour.adult_price ?? "",
@@ -125,7 +122,7 @@ const TABS = [
   { key: "basic", label: "Basic Info" },
   { key: "media", label: "Media" },
   { key: "details", label: "Details" },
-  { key: "daytrip", label: "One Day Trip", dayTripOnly: true },
+  { key: "daytrip", label: "Trip Info" },
   { key: "settings", label: "Settings" },
 ];
 
@@ -142,10 +139,14 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
   const [gallery, setGallery] = useState([]);
   const [itinerary, setItinerary] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const [error, setError] = useState("");
   const [mainUploading, setMainUploading] = useState(false);
   const [galleryUploading, setGalleryUploading] = useState(false);
+  const [openDays, setOpenDays] = useState(() => new Set());
   const dragIndex = useRef(null);
+  const uidRef = useRef(0);
+  const nextUid = () => ++uidRef.current;
 
   useEffect(() => {
     if (seed) {
@@ -154,6 +155,7 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
       setItinerary(
         Array.isArray(seed.itinerary)
           ? seed.itinerary.map((d) => ({
+              uid: nextUid(),
               title: d.title || "",
               time: d.time || "",
               description: d.description || "",
@@ -166,21 +168,22 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
       setGallery([]);
       setItinerary([]);
     }
+    setOpenDays(new Set());
     setTab("basic");
     setError("");
   }, [seed]);
 
-  const isDayTrip = Number(form.duration_days) === 1;
-  const visibleTabs = useMemo(
-    () => TABS.filter((t) => !t.dayTripOnly || isDayTrip),
-    [isDayTrip]
-  );
+  // Island tours are always one-day trips, so the itinerary is a schedule of
+  // stops within that day rather than a day-by-day plan.
+  const itemLabel = "Item";
 
   const set = (key) => (e) => {
     const value =
       e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setForm((f) => ({ ...f, [key]: value }));
   };
+
+  const setValue = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
 
   // --- image upload ---
   const onMainImage = async (files) => {
@@ -235,19 +238,34 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
   };
 
   // --- itinerary ---
-  const addDay = () =>
+  const addDay = () => {
+    const uid = nextUid();
     setItinerary((it) => [
       ...it,
-      { title: "", time: "", description: "", activities: "" },
+      { uid, title: "", time: "", description: "", activities: "" },
     ]);
+    setOpenDays((o) => new Set(o).add(uid)); // a fresh entry is empty — open it to fill in
+  };
   const updateDay = (i, key, value) =>
     setItinerary((it) => it.map((d, idx) => (idx === i ? { ...d, [key]: value } : d)));
-  const removeDay = (i) =>
+  const removeDay = (i) => {
+    const { uid } = itinerary[i];
     setItinerary((it) => it.filter((_, idx) => idx !== i));
+    setOpenDays((o) => {
+      const next = new Set(o);
+      next.delete(uid);
+      return next;
+    });
+  };
+  const toggleDay = (uid) =>
+    setOpenDays((o) => {
+      const next = new Set(o);
+      if (next.has(uid)) next.delete(uid);
+      else next.add(uid);
+      return next;
+    });
 
   const buildPayload = () => {
-    const days = parseInt(form.duration_days, 10);
-    const nights = parseInt(form.duration_nights, 10) || 0;
     const num = (v) => {
       const n = parseFloat(v);
       return Number.isNaN(n) ? null : n;
@@ -263,10 +281,9 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
       park_fee_included: form.park_fee_included ? 1 : 0,
       park_fee_adult: num(form.park_fee_adult),
       park_fee_child: num(form.park_fee_child),
-      duration_days: days,
-      duration_nights: days === 1 ? 0 : nights,
-      duration_label:
-        days === 1 ? "One Day Trip" : `${days} Days / ${nights} Nights`,
+      duration_days: 1,
+      duration_nights: 0,
+      duration_label: "One Day Trip",
       currency: "THB",
       description: form.description,
       short_description: form.short_description,
@@ -277,7 +294,7 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
       not_included: linesToArray(form.not_included),
       itinerary: itinerary.map((d, i) => ({
         day: i + 1,
-        title: d.title.trim() || `Day ${i + 1}`,
+        title: d.title.trim() || `${itemLabel} ${i + 1}`,
         time: d.time.trim(),
         description: d.description.trim(),
         activities: csvToArray(d.activities),
@@ -305,24 +322,27 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
     };
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    // Required fields all live on the Basic tab — jump there if any are missing.
+  // Required fields all live on the Basic tab — jump there if any are missing.
+  const validate = () => {
     const required = [
       ["name", "Tour Name"],
       ["destination", "Destination"],
-      ["duration_days", "Days"],
       ["adult_price", "Adult Price"],
       ["description", "Full Description"],
     ];
-    if (!isDayTrip) required.push(["duration_nights", "Nights"]);
     for (const [key, label] of required) {
       if (form[key] === "" || form[key] === null || form[key] === undefined) {
         setTab("basic");
         setError(`Please fill in "${label}"`);
-        return;
+        return false;
       }
     }
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
 
     setSaving(true);
     setError("");
@@ -338,6 +358,27 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
       setError("Error saving tour. Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!validate()) return;
+    if (!window.confirm(`Create a copy of "${form.name}"?`)) return;
+
+    setDuplicating(true);
+    setError("");
+    try {
+      const payload = { ...buildPayload(), name: `${form.name} (Copy)`, is_active: 0 };
+      const data = await apiJson("tours.php", "POST", payload);
+      if (data.success) {
+        onSaved("Tour duplicated! The copy is inactive — review it before publishing.");
+      } else {
+        setError("Error: " + (data.message || "could not duplicate tour"));
+      }
+    } catch {
+      setError("Error duplicating tour. Please try again.");
+    } finally {
+      setDuplicating(false);
     }
   };
 
@@ -367,7 +408,7 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
 
         {/* Tabs */}
         <div className="flex flex-wrap px-6 bg-gray-50 border-b border-gray-100 gap-1">
-          {visibleTabs.map((t) => (
+          {TABS.map((t) => (
             <button
               key={t.key}
               type="button"
@@ -417,30 +458,6 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
                     </datalist>
                   </Field>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Days" required>
-                    <input
-                      type="number"
-                      min="1"
-                      className={inputClass}
-                      value={form.duration_days}
-                      onChange={set("duration_days")}
-                      placeholder="3"
-                    />
-                  </Field>
-                  {!isDayTrip && (
-                    <Field label="Nights" required>
-                      <input
-                        type="number"
-                        min="0"
-                        className={inputClass}
-                        value={form.duration_nights}
-                        onChange={set("duration_nights")}
-                        placeholder="2"
-                      />
-                    </Field>
-                  )}
-                </div>
               </SectionCard>
 
               <SectionCard title="Pricing">
@@ -450,18 +467,20 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="Net Adult Price">
-                    <input type="number" step="0.01" className={inputClass} value={form.net_adult_price} onChange={set("net_adult_price")} placeholder="0.00" />
+                    <PriceInput className={inputClass} value={form.net_adult_price} onChange={setValue("net_adult_price")} />
                   </Field>
                   <Field label="Net Child Price">
-                    <input type="number" step="0.01" className={inputClass} value={form.net_child_price} onChange={set("net_child_price")} placeholder="0.00" />
+                    <PriceInput className={inputClass} value={form.net_child_price} onChange={setValue("net_child_price")} />
                   </Field>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                   <Field label="Selling Adult Price" required>
-                    <input type="number" step="0.01" className={inputClass} value={form.adult_price} onChange={set("adult_price")} placeholder="0.00" />
+                    <PriceInput className={inputClass} value={form.adult_price} onChange={setValue("adult_price")} />
+                    <MarginHint net={form.net_adult_price} selling={form.adult_price} />
                   </Field>
                   <Field label="Selling Child Price">
-                    <input type="number" step="0.01" className={inputClass} value={form.child_price} onChange={set("child_price")} placeholder="0.00" />
+                    <PriceInput className={inputClass} value={form.child_price} onChange={setValue("child_price")} />
+                    <MarginHint net={form.net_child_price} selling={form.child_price} />
                   </Field>
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-100">
@@ -473,10 +492,10 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="Park Fee — Adult">
-                      <input type="number" step="0.01" className={inputClass} value={form.park_fee_adult} onChange={set("park_fee_adult")} placeholder="0.00" />
+                      <PriceInput className={inputClass} value={form.park_fee_adult} onChange={setValue("park_fee_adult")} />
                     </Field>
                     <Field label="Park Fee — Child">
-                      <input type="number" step="0.01" className={inputClass} value={form.park_fee_child} onChange={set("park_fee_child")} placeholder="0.00" />
+                      <PriceInput className={inputClass} value={form.park_fee_child} onChange={setValue("park_fee_child")} />
                     </Field>
                   </div>
                 </div>
@@ -561,42 +580,77 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
                   </Field>
                 </div>
               </SectionCard>
-              <SectionCard title="Itinerary" right={`${itinerary.length} ${itinerary.length === 1 ? "day" : "days"}`}>
+              <SectionCard
+                title="Schedule"
+                right={`${itinerary.length} ${itinerary.length === 1 ? "item" : "items"}`}
+              >
                 <div className="flex flex-col gap-3">
-                  {itinerary.map((d, i) => (
-                    <div key={i} className="rounded-xl border border-gray-200 p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="font-body text-sm font-semibold text-navy">Day {i + 1}</span>
-                        <button type="button" onClick={() => removeDay(i)} className="text-sm text-red-600 hover:underline">Remove</button>
+                  {itinerary.map((d, i) => {
+                    const open = openDays.has(d.uid);
+                    const summary = [d.time, d.title].filter(Boolean).join(" — ");
+                    return (
+                      <div key={d.uid} className="rounded-xl border border-gray-200 overflow-hidden">
+                        <div className="flex items-center gap-3 p-4">
+                          <button
+                            type="button"
+                            onClick={() => toggleDay(d.uid)}
+                            aria-expanded={open}
+                            className="flex flex-1 items-center gap-2.5 text-left min-w-0"
+                          >
+                            <svg
+                              className={`w-3.5 h-3.5 shrink-0 text-gray-400 transition-transform ${open ? "rotate-90" : ""}`}
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                            <span className="font-body text-sm font-semibold text-navy shrink-0">
+                              {itemLabel} {i + 1}
+                            </span>
+                            {!open && summary && (
+                              <span className="font-body text-sm text-gray-400 truncate">{summary}</span>
+                            )}
+                          </button>
+                          <button type="button" onClick={() => removeDay(i)} className="text-sm text-red-600 hover:underline shrink-0">Remove</button>
+                        </div>
+                        {open && (
+                          <div className="px-4 pb-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                              <Field label="Title">
+                                <input className={inputClass} value={d.title} onChange={(e) => updateDay(i, "title", e.target.value)} placeholder="e.g. Maya Bay" />
+                              </Field>
+                              <Field label="Time">
+                                <input className={inputClass} value={d.time} onChange={(e) => updateDay(i, "time", e.target.value)} placeholder="e.g. 09:00 - 10:30" />
+                              </Field>
+                            </div>
+                            <div className="mb-3">
+                              <Field label="Description">
+                                <textarea rows={2} className={`${inputClass} resize-y`} value={d.description} onChange={(e) => updateDay(i, "description", e.target.value)} placeholder="Describe this stop..." />
+                              </Field>
+                            </div>
+                            <Field label="Activities" hint="(comma-separated)">
+                              <input className={inputClass} value={d.activities} onChange={(e) => updateDay(i, "activities", e.target.value)} placeholder="Temple visit, Lunch, Beach" />
+                            </Field>
+                          </div>
+                        )}
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                        <Field label="Title">
-                          <input className={inputClass} value={d.title} onChange={(e) => updateDay(i, "title", e.target.value)} placeholder="e.g. Arrival & City Tour" />
-                        </Field>
-                        <Field label="Time">
-                          <input className={inputClass} value={d.time} onChange={(e) => updateDay(i, "time", e.target.value)} placeholder="e.g. 08:00 - 17:00" />
-                        </Field>
-                      </div>
-                      <div className="mb-3">
-                        <Field label="Description">
-                          <textarea rows={2} className={`${inputClass} resize-y`} value={d.description} onChange={(e) => updateDay(i, "description", e.target.value)} placeholder="Describe the day's activities..." />
-                        </Field>
-                      </div>
-                      <Field label="Activities" hint="(comma-separated)">
-                        <input className={inputClass} value={d.activities} onChange={(e) => updateDay(i, "activities", e.target.value)} placeholder="Temple visit, Lunch, Beach" />
-                      </Field>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <button type="button" onClick={addDay} className="mt-3 w-full px-4 py-3 border-2 border-dashed border-gray-200 rounded-xl font-body text-sm text-gray-400 hover:border-navy hover:text-navy hover:bg-navy/[0.02] transition-all">
-                  + Add Day
+                  + Add {itemLabel}
                 </button>
               </SectionCard>
             </div>
           )}
 
           {/* One Day Trip */}
-          {tab === "daytrip" && isDayTrip && (
+          {tab === "daytrip" && (
             <div>
               <SectionCard title="Pickup & Dropoff">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -701,10 +755,21 @@ export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
           <div className="font-body text-sm text-red-600">{error}</div>
           <div className="flex gap-3">
+            {isEdit && (
+              <button
+                type="button"
+                onClick={handleDuplicate}
+                disabled={saving || duplicating}
+                title="Save these details as a new, inactive tour"
+                className="px-5 py-2.5 font-body text-sm font-semibold text-navy bg-white border-2 border-navy rounded-xl hover:bg-navy hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {duplicating ? "Duplicating..." : "Duplicate"}
+              </button>
+            )}
             <button type="button" onClick={onClose} className="px-5 py-2.5 font-body text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 transition-all">
               Cancel
             </button>
-            <button type="submit" form="tourForm" disabled={saving} className="px-6 py-2.5 font-body text-sm font-semibold text-navy bg-yellow rounded-xl hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="submit" form="tourForm" disabled={saving || duplicating} className="px-6 py-2.5 font-body text-sm font-semibold text-navy bg-yellow rounded-xl hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
               {saving ? "Saving..." : "Save Tour"}
             </button>
           </div>

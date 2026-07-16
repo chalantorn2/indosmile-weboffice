@@ -19,11 +19,27 @@ export default function Shows() {
   const [modalShow, setModalShow] = useState(null);
   const [creating, setCreating] = useState(false);
   const [qrShow, setQrShow] = useState(null);
+  const [search, setSearch] = useState("");
+  const [province, setProvince] = useState(""); // "" = all destinations
 
   const { data: shows = [], isPending } = useQuery({
     queryKey: ["shows"],
     queryFn: () => apiGet("shows.php?active=").then((d) => d.items || []),
   });
+
+  const provinceOptions = useMemo(
+    () => [...new Set(shows.map((s) => s.destination).filter(Boolean))].sort(),
+    [shows]
+  );
+
+  const filteredShows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return shows.filter((s) => {
+      if (province && s.destination !== province) return false;
+      if (q && !(`${s.name} ${s.destination || ""} ${s.venue || ""}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [shows, search, province]);
 
   const { data: destinations = [] } = useQuery({
     queryKey: ["destinations"],
@@ -124,7 +140,7 @@ export default function Shows() {
     []
   );
 
-  const table = useReactTable({ data: shows, columns, getCoreRowModel: getCoreRowModel() });
+  const table = useReactTable({ data: filteredShows, columns, getCoreRowModel: getCoreRowModel() });
 
   const modalOpen = creating || modalShow !== null;
 
@@ -133,11 +149,31 @@ export default function Shows() {
       <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
         <div>
           <h1 className="font-heading text-4xl text-navy">Shows & Adventures</h1>
-          <p className="font-body text-sm text-gray-500 mt-1">{shows.length} show{shows.length === 1 ? "" : "s"}</p>
+          <p className="font-body text-sm text-gray-500 mt-1">{filteredShows.length} of {shows.length} show{shows.length === 1 ? "" : "s"}</p>
         </div>
         <button onClick={() => { setModalShow(null); setCreating(true); }} className="bg-yellow text-navy font-body font-semibold px-5 py-2.5 rounded-xl hover:brightness-95 focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all">
           + Add New Show
         </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search shows..."
+          className="flex-1 min-w-[200px] px-4 py-2.5 font-body text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy/20 focus:border-navy focus:outline-none"
+        />
+        <select
+          value={province}
+          onChange={(e) => setProvince(e.target.value)}
+          className="px-4 py-2.5 font-body text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy/20 focus:border-navy focus:outline-none bg-white"
+        >
+          <option value="">All destinations</option>
+          {provinceOptions.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
       </div>
 
       <div className="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
@@ -145,6 +181,8 @@ export default function Shows() {
           <p className="p-6 font-body text-gray-500">Loading shows...</p>
         ) : shows.length === 0 ? (
           <p className="p-10 text-center font-body text-gray-500">No shows yet. Click “Add New Show” to create one.</p>
+        ) : filteredShows.length === 0 ? (
+          <p className="p-10 text-center font-body text-gray-500">No shows match your filters.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

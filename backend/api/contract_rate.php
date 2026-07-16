@@ -87,6 +87,17 @@ function getImportedMap($db)
         }
     }
 
+    // A show combined from several Contract Rate rows records each source here, so
+    // every one of those rows is marked imported (the table may not exist pre-migration).
+    try {
+        $stmt = $db->query("SELECT show_id, source_tour_id FROM show_sources");
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $map[(int)$row['source_tour_id']] = ['type' => 'show', 'id' => (int)$row['show_id']];
+        }
+    } catch (PDOException $e) {
+        // show_sources not migrated yet — combined-import marking is simply unavailable
+    }
+
     return $map;
 }
 
