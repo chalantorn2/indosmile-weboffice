@@ -1,12 +1,20 @@
 import { useState } from "react";
-import { apiFetch, formatCurrency, formatDate, formatDateTime, isAwaitingPayment } from "./lib/adminApi";
+import {
+  apiFetch,
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  isAwaitingPayment,
+} from "./lib/adminApi";
 import { StatusBadges } from "./bookingStatus";
 
 function DetailRow({ label, children }) {
   return (
     <div className="flex justify-between gap-4 py-1.5 border-b border-gray-50 last:border-0">
       <span className="font-body text-sm text-gray-500 shrink-0">{label}</span>
-      <span className="font-body text-sm text-gray-700 text-right break-words">{children}</span>
+      <span className="font-body text-sm text-gray-700 text-right break-words">
+        {children}
+      </span>
     </div>
   );
 }
@@ -26,7 +34,12 @@ function Section({ title, children }) {
  * Booking detail + workflow actions. Faithful port of the legacy booking modal:
  * confirm, resend payment link, mark paid (offline), cancel — same PUT actions.
  */
-export default function BookingDetailModal({ booking, onClose, onActionDone, onError }) {
+export default function BookingDetailModal({
+  booking,
+  onClose,
+  onActionDone,
+  onError,
+}) {
   const [busy, setBusy] = useState(false);
   const [panel, setPanel] = useState(null); // 'markPaid' | 'cancel' | null
   const [payMethod, setPayMethod] = useState("bank_transfer");
@@ -44,11 +57,14 @@ export default function BookingDetailModal({ booking, onClose, onActionDone, onE
   const runAction = async (action, body = {}) => {
     setBusy(true);
     try {
-      const data = await apiFetch(`bookings.php?id=${booking.id}&action=${action}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const data = await apiFetch(
+        `bookings.php?id=${booking.id}&action=${action}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
       if (!data.success) {
         onError("Error: " + (data.message || "action failed"));
         return null;
@@ -65,7 +81,7 @@ export default function BookingDetailModal({ booking, onClose, onActionDone, onE
   const handleConfirm = async () => {
     if (
       !window.confirm(
-        `Confirm ${booking.booking_reference}?\n\nThis emails ${booking.customer_email} a Pay Now link for ${formatCurrency(booking.total_price)}.`
+        `Confirm ${booking.booking_reference}?\n\nThis emails ${booking.customer_email} a Pay Now link for ${formatCurrency(booking.total_price)}.`,
       )
     )
       return;
@@ -74,7 +90,10 @@ export default function BookingDetailModal({ booking, onClose, onActionDone, onE
   };
 
   const handleResend = async () => {
-    if (!window.confirm(`Resend the payment link to ${booking.customer_email}?`)) return;
+    if (
+      !window.confirm(`Resend the payment link to ${booking.customer_email}?`)
+    )
+      return;
     const data = await runAction("resend_payment_link");
     if (data) onActionDone(data.message || "Payment link resent.");
   };
@@ -124,12 +143,18 @@ export default function BookingDetailModal({ booking, onClose, onActionDone, onE
           <Section title="Customer">
             <DetailRow label="Name">{booking.customer_name}</DetailRow>
             <DetailRow label="Email">
-              <a className="text-blue-600 hover:underline" href={`mailto:${booking.customer_email}`}>
+              <a
+                className="text-blue-600 hover:underline"
+                href={`mailto:${booking.customer_email}`}
+              >
                 {booking.customer_email}
               </a>
             </DetailRow>
             <DetailRow label="Phone">
-              <a className="text-blue-600 hover:underline" href={`tel:${booking.customer_phone}`}>
+              <a
+                className="text-blue-600 hover:underline"
+                href={`tel:${booking.customer_phone}`}
+              >
                 {booking.customer_phone}
               </a>
             </DetailRow>
@@ -137,8 +162,12 @@ export default function BookingDetailModal({ booking, onClose, onActionDone, onE
 
           <Section title="Trip">
             <DetailRow label="Tour">{booking.tour_name || "-"}</DetailRow>
-            <DetailRow label="Destination">{booking.destination || "-"}</DetailRow>
-            <DetailRow label="Travel date">{formatDate(booking.travel_date)}</DetailRow>
+            <DetailRow label="Destination">
+              {booking.destination || "-"}
+            </DetailRow>
+            <DetailRow label="Travel date">
+              {formatDate(booking.travel_date)}
+            </DetailRow>
             <DetailRow label="Guests">{guests}</DetailRow>
             <DetailRow label="Total">
               <strong>{formatCurrency(booking.total_price)}</strong>
@@ -147,20 +176,28 @@ export default function BookingDetailModal({ booking, onClose, onActionDone, onE
 
           {booking.special_requests && (
             <Section title="Special requests">
-              <p className="font-body text-sm text-gray-700">{booking.special_requests}</p>
+              <p className="font-body text-sm text-gray-700">
+                {booking.special_requests}
+              </p>
             </Section>
           )}
 
           <Section title="Payment">
             {paid ? (
               <>
-                <DetailRow label="Method">{booking.payment_method || "-"}</DetailRow>
+                <DetailRow label="Method">
+                  {booking.payment_method || "-"}
+                </DetailRow>
                 <DetailRow label="Paid on">
-                  {booking.payment_date ? formatDateTime(booking.payment_date) : "-"}
+                  {booking.payment_date
+                    ? formatDateTime(booking.payment_date)
+                    : "-"}
                 </DetailRow>
                 {booking.payment_intent_id && (
                   <DetailRow label="Stripe ref">
-                    <span className="font-mono text-xs">{booking.payment_intent_id}</span>
+                    <span className="font-mono text-xs">
+                      {booking.payment_intent_id}
+                    </span>
                   </DetailRow>
                 )}
               </>
@@ -174,15 +211,23 @@ export default function BookingDetailModal({ booking, onClose, onActionDone, onE
           </Section>
 
           <Section title="History">
-            <DetailRow label="Booked">{formatDateTime(booking.created_at)}</DetailRow>
+            <DetailRow label="Booked">
+              {formatDateTime(booking.created_at)}
+            </DetailRow>
             {booking.confirmed_at && (
-              <DetailRow label="Confirmed">{formatDateTime(booking.confirmed_at)}</DetailRow>
+              <DetailRow label="Confirmed">
+                {formatDateTime(booking.confirmed_at)}
+              </DetailRow>
             )}
             {booking.cancelled_at && (
-              <DetailRow label="Cancelled">{formatDateTime(booking.cancelled_at)}</DetailRow>
+              <DetailRow label="Cancelled">
+                {formatDateTime(booking.cancelled_at)}
+              </DetailRow>
             )}
             {booking.cancellation_reason && (
-              <DetailRow label="Reason">{booking.cancellation_reason}</DetailRow>
+              <DetailRow label="Reason">
+                {booking.cancellation_reason}
+              </DetailRow>
             )}
           </Section>
 
@@ -193,8 +238,8 @@ export default function BookingDetailModal({ booking, onClose, onActionDone, onE
                 Record an offline payment
               </h3>
               <p className="text-xs text-gray-500 mb-4">
-                Card payments record themselves via Stripe. Use this only for money
-                received another way.
+                Card payments record themselves via Stripe. Use this only for
+                money received another way.
               </p>
               <label className="block font-body text-xs font-semibold text-navy mb-1.5">
                 Payment method
@@ -287,7 +332,7 @@ export default function BookingDetailModal({ booking, onClose, onActionDone, onE
           {booking.payment_status === "unpaid" && !cancelled && (
             <button
               onClick={() => setPanel("markPaid")}
-              className="px-4 py-2 font-body text-sm font-semibold text-white bg-green-600 rounded-lg hover:brightness-95"
+              className="px-4 py-2 font-body text-sm font-semibold text-white bg-green-500 rounded-lg hover:brightness-95"
             >
               Mark Paid
             </button>

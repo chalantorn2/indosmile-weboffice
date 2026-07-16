@@ -261,6 +261,23 @@ class Booking
     }
 
     /**
+     * Mark a booking as seen by an admin. NULL viewed_at means "new / unread";
+     * this stamps it the first time an admin opens the booking. The
+     * `viewed_at IS NULL` guard keeps it idempotent — re-opening won't move the time.
+     */
+    public function markSeen($id)
+    {
+        $query = "UPDATE {$this->table} SET viewed_at = NOW()
+                  WHERE id = :id AND viewed_at IS NULL";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
      * Cancel booking
      */
     public function cancel($id, $reason = null)

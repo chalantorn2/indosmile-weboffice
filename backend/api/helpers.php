@@ -375,6 +375,65 @@ function parseOptionalDecimal($value)
     return (float)$value;
 }
 
+// =====================================================================
+// Stripe mode (sandbox / live) resolution
+// =====================================================================
+
+/**
+ * Read the active payment mode from the settings table.
+ *
+ * Anything other than the exact string 'live' resolves to 'test', so a missing
+ * row, a typo, or a DB hiccup can never silently start charging real cards.
+ *
+ * @param PDO|null $db  Reuse an existing connection when the caller has one;
+ *                      otherwise a short-lived connection is opened.
+ * @return string 'test' | 'live'
+ */
+function getPaymentMode($db = null)
+{
+    try {
+        if ($db === null) {
+            if (!class_exists('Database')) {
+                require_once __DIR__ . '/../config/Database.php';
+            }
+            $database = new Database();
+            $db = $database->connect();
+        }
+        $stmt = $db->prepare("SELECT setting_value FROM settings WHERE setting_key = 'payment_mode' LIMIT 1");
+        $stmt->execute();
+        $val = $stmt->fetchColumn();
+        return ($val === 'live') ? 'live' : 'test';
+    } catch (Exception $e) {
+        return 'test';
+    }
+}
+
+/**
+ * Resolve the Stripe key set for the current payment mode.
+ *
+ * Keys live in secrets.php as *_TEST / *_LIVE pairs; this is the single place
+ * that decides which pair every Stripe endpoint uses.
+ *
+ * @param PDO|null $db
+ * @return array{mode:string, secret_key:string, publishable_key:string, webhook_secret:string}
+ */
+function getStripeConfig($db = null)
+{
+    $mode = getPaymentMode($db);
+    $suffix = $mode === 'live' ? 'LIVE' : 'TEST';
+
+    $const = function ($name) {
+        return defined($name) ? constant($name) : '';
+    };
+
+    return [
+        'mode'            => $mode,
+        'secret_key'      => $const('STRIPE_SECRET_KEY_' . $suffix),
+        'publishable_key' => $const('STRIPE_PUBLISHABLE_KEY_' . $suffix),
+        'webhook_secret'  => $const('STRIPE_WEBHOOK_SECRET_' . $suffix),
+    ];
+}
+
 /**
  * Generate booking reference
  */

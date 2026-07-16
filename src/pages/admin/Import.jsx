@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiGet, apiJson, formatCurrency } from "./lib/adminApi";
@@ -47,6 +47,15 @@ export default function Import() {
       setSearching(false);
     }
   };
+
+  // Auto-search while typing (>=2 chars), debounced. Enter and the button still work
+  // for an empty query, which lists everything.
+  useEffect(() => {
+    if (query.trim().length < 2) return;
+    const t = setTimeout(() => runSearch(), 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   const openDetail = async (sourceId) => {
     setStep("detail");

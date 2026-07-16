@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import { apiGet, apiMutate, formatCurrency } from "./lib/adminApi";
 import TourFormModal from "./TourFormModal";
+import TourQRModal from "./TourQRModal";
 
 const columnHelper = createColumnHelper();
 
@@ -20,15 +21,12 @@ export default function Tours() {
   const queryClient = useQueryClient();
   const [modalTour, setModalTour] = useState(null); // tour object = edit
   const [creating, setCreating] = useState(false);
+  const [qrTour, setQrTour] = useState(null); // tour object = show QR modal
+  const [showNet, setShowNet] = useState(false); // false = selling price, true = net price
 
   const { data: tours = [], isPending } = useQuery({
     queryKey: ["tours", "inbound"],
     queryFn: () => apiGet("tours.php?type=inbound&active=").then((d) => d.items || []),
-  });
-
-  const { data: destinations = [] } = useQuery({
-    queryKey: ["destinations"],
-    queryFn: () => apiGet("destinations.php"),
   });
 
   const closeModal = () => {
@@ -40,7 +38,6 @@ export default function Tours() {
     closeModal();
     toast.success(message);
     queryClient.invalidateQueries({ queryKey: ["tours"] });
-    queryClient.invalidateQueries({ queryKey: ["destinations"] });
   };
 
   const deleteMutation = useMutation({
@@ -78,17 +75,14 @@ export default function Tours() {
         cell: (info) => <span className="font-semibold text-navy">{info.getValue()}</span>,
       }),
       columnHelper.accessor("destination", { header: "Destination" }),
-      columnHelper.accessor("duration_days", {
-        header: "Duration",
-        cell: ({ row, getValue }) =>
-          Number(getValue()) === 1 ? (
-            <span className="rounded-full bg-blue-50 text-blue-600 px-2.5 py-1 text-xs font-semibold">Day Trip</span>
-          ) : (
-            `${getValue()}D/${row.original.duration_nights}N`
-          ),
+      columnHelper.accessor(showNet ? "net_adult_price" : "adult_price", {
+        id: "adt_price",
+        header: showNet ? "Net ADT" : "ADT",
+        cell: (info) => formatCurrency(info.getValue()),
       }),
-      columnHelper.accessor("adult_price", {
-        header: "Price",
+      columnHelper.accessor(showNet ? "net_child_price" : "child_price", {
+        id: "chd_price",
+        header: showNet ? "Net CHD" : "CHD",
         cell: (info) => formatCurrency(info.getValue()),
       }),
       columnHelper.display({
@@ -114,6 +108,12 @@ export default function Tours() {
         cell: ({ row }) => (
           <div className="flex gap-2 justify-end">
             <button
+              onClick={() => setQrTour(row.original)}
+              className="px-3 py-1.5 font-body text-sm font-semibold text-navy border-2 border-yellow bg-yellow/20 rounded-lg hover:bg-yellow transition-all"
+            >
+              QR
+            </button>
+            <button
               onClick={() => {
                 setCreating(false);
                 setModalTour(row.original);
@@ -133,7 +133,7 @@ export default function Tours() {
       }),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [showNet]
   );
 
   const table = useReactTable({ data: tours, columns, getCoreRowModel: getCoreRowModel() });
@@ -149,15 +149,33 @@ export default function Tours() {
             {tours.length} tour{tours.length === 1 ? "" : "s"}
           </p>
         </div>
-        <button
-          onClick={() => {
-            setModalTour(null);
-            setCreating(true);
-          }}
-          className="bg-yellow text-navy font-body font-semibold px-5 py-2.5 rounded-xl hover:brightness-95 focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all"
-        >
-          + Add New Island Tour
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setShowNet((v) => !v)}
+            className="flex items-center gap-2.5 font-body text-sm font-semibold text-navy"
+            title="Toggle between selling and net prices"
+          >
+            <span className={showNet ? "text-gray-400" : ""}>Selling</span>
+            <span
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showNet ? "bg-navy" : "bg-gray-300"}`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${showNet ? "translate-x-5" : "translate-x-0.5"}`}
+              />
+            </span>
+            <span className={showNet ? "" : "text-gray-400"}>Net</span>
+          </button>
+          <button
+            onClick={() => {
+              setModalTour(null);
+              setCreating(true);
+            }}
+            className="bg-yellow text-navy font-body font-semibold px-5 py-2.5 rounded-xl hover:brightness-95 focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all"
+          >
+            + Add New Island Tour
+          </button>
+        </div>
       </div>
 
       <div className="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
@@ -205,11 +223,12 @@ export default function Tours() {
       {modalOpen && (
         <TourFormModal
           tour={modalTour}
-          destinations={destinations}
           onClose={closeModal}
           onSaved={onSaved}
         />
       )}
+
+      {qrTour && <TourQRModal tour={qrTour} onClose={() => setQrTour(null)} />}
     </div>
   );
 }

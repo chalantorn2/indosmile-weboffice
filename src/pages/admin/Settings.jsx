@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Share2, Wallet, BellRing } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
+import { Building2, Share2, Wallet, BellRing, CreditCard, AlertTriangle } from "lucide-react";
 import { apiFetch } from "./lib/adminApi";
 
 const inputClass =
@@ -104,10 +105,22 @@ const SCHEMA = [
   },
 ];
 
-const ALL_KEYS = SCHEMA.flatMap((s) => s.fields.map((f) => f.key));
+const BASE_KEYS = SCHEMA.flatMap((s) => s.fields.map((f) => f.key));
+// Stripe sandbox/live switch — managed separately from the generic schema because
+// only super_admin may change it (see settings.php).
+const PAYMENT_KEY = "payment_mode";
 const isBoolTrue = (v) => v === "1" || v === "true" || v === true;
 
 export default function Settings() {
+  const { admin } = useOutletContext();
+  // 'admin' is the highest role in this system (staff is the other); only admins
+  // own the payment_mode field, staff saves the base set.
+  const canManagePayments = admin?.role === "admin";
+  const managedKeys = useMemo(
+    () => (canManagePayments ? [...BASE_KEYS, PAYMENT_KEY] : BASE_KEYS),
+    [canManagePayments]
+  );
+
   const [values, setValues] = useState({});
   const [saved, setSaved] = useState({}); // last-saved snapshot for dirty detection
   const [loading, setLoading] = useState(true);
@@ -124,9 +137,10 @@ export default function Settings() {
           map[s.setting_key] = s.setting_type === "boolean" ? (isBoolTrue(s.setting_value) ? "1" : "0") : s.setting_value || "";
         });
         // Ensure every schema key has an entry.
-        ALL_KEYS.forEach((k) => {
+        BASE_KEYS.forEach((k) => {
           if (!(k in map)) map[k] = "";
         });
+        if (!(PAYMENT_KEY in map)) map[PAYMENT_KEY] = "test";
         setValues(map);
         setSaved(map);
       }
@@ -147,11 +161,24 @@ export default function Settings() {
   };
 
   const dirty = useMemo(
-    () => ALL_KEYS.some((k) => (values[k] ?? "") !== (saved[k] ?? "")),
-    [values, saved]
+    () => managedKeys.some((k) => (values[k] ?? "") !== (saved[k] ?? "")),
+    [values, saved, managedKeys]
   );
 
   const setValue = (key, value) => setValues((v) => ({ ...v, [key]: value }));
+
+  const paymentMode = values[PAYMENT_KEY] === "live" ? "live" : "test";
+  const setPaymentMode = (mode) => {
+    if (mode === "live" && paymentMode !== "live") {
+      const ok = window.confirm(
+        "Switch to LIVE payments?\n\n" +
+          "Real customer cards will be charged. Make sure the Stripe live keys are " +
+          "set on the server first — otherwise the switch is rejected on Save."
+      );
+      if (!ok) return;
+    }
+    setValue(PAYMENT_KEY, mode);
+  };
 
   const discard = () => {
     setValues(saved);
@@ -161,7 +188,7 @@ export default function Settings() {
   const save = async () => {
     setSaving(true);
     try {
-      const payload = ALL_KEYS.map((k) => ({ setting_key: k, setting_value: values[k] ?? "" }));
+      const payload = managedKeys.map((k) => ({ setting_key: k, setting_value: values[k] ?? "" }));
       const data = await apiFetch("settings.php", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -197,6 +224,66 @@ export default function Settings() {
         <p className="font-body text-gray-500">Loading settings...</p>
       ) : (
         <div className="flex flex-col gap-5 pb-24">
+          {canManagePayments && (
+            <div className="rounded-xl border border-gray-200 bg-white p-6">
+              <div className="flex items-center gap-2.5 mb-4">
+                <span className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4 text-navy" />
+                </span>
+                <h3 className="font-body text-base font-semibold text-navy">Payments</h3>
+                <span
+                  className={`ml-auto text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    paymentMode === "live"
+                      ? "bg-red-50 text-red-600"
+                      : "bg-amber-50 text-amber-600"
+                  }`}
+                >
+                  {paymentMode === "live" ? "LIVE — real charges" : "Sandbox — test mode"}
+                </span>
+              </div>
+
+              <p className="font-body text-sm text-gray-500 mb-3">
+                Stripe payment mode. Sandbox uses test keys and never charges a real
+                card; Live processes real payments.
+              </p>
+
+              {/* Segmented toggle */}
+              <div className="inline-flex rounded-xl border border-gray-200 p-1 bg-gray-50">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMode("test")}
+                  className={`px-5 py-2 font-body text-sm font-semibold rounded-lg transition-all ${
+                    paymentMode === "test"
+                      ? "bg-navy text-white shadow-sm"
+                      : "text-gray-500 hover:text-navy"
+                  }`}
+                >
+                  Sandbox
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMode("live")}
+                  className={`px-5 py-2 font-body text-sm font-semibold rounded-lg transition-all ${
+                    paymentMode === "live"
+                      ? "bg-red-600 text-white shadow-sm"
+                      : "text-gray-500 hover:text-red-600"
+                  }`}
+                >
+                  Live
+                </button>
+              </div>
+
+              {paymentMode === "live" && (
+                <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-red-50 px-4 py-3">
+                  <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                  <p className="font-body text-xs text-red-600">
+                    Live mode charges real customer cards. Confirm the Stripe live keys
+                    and webhook secret are configured on the server before saving.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           {SCHEMA.map((section) => (
             <div key={section.title} className="rounded-xl border border-gray-200 bg-white p-6">
               <div className="flex items-center gap-2.5 mb-4">

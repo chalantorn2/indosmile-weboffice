@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import { apiGet, apiMutate } from "./lib/adminApi";
 import ShowFormModal from "./ShowFormModal";
+import TourQRModal from "./TourQRModal";
 
 const columnHelper = createColumnHelper();
 
@@ -17,6 +18,7 @@ export default function Shows() {
   const queryClient = useQueryClient();
   const [modalShow, setModalShow] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [qrShow, setQrShow] = useState(null);
 
   const { data: shows = [], isPending } = useQuery({
     queryKey: ["shows"],
@@ -111,6 +113,7 @@ export default function Shows() {
         meta: { align: "right" },
         cell: ({ row }) => (
           <div className="flex gap-2 justify-end">
+            <button onClick={() => setQrShow(row.original)} className="px-3 py-1.5 font-body text-sm font-semibold text-navy border-2 border-yellow bg-yellow/20 rounded-lg hover:bg-yellow transition-all">QR</button>
             <button onClick={() => { setCreating(false); setModalShow(row.original); }} className="px-3 py-1.5 font-body text-sm font-semibold text-navy border-2 border-navy rounded-lg hover:bg-navy hover:text-white transition-all">Edit</button>
             <button onClick={() => handleDelete(row.original)} className="px-3 py-1.5 font-body text-sm font-semibold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-all">Delete</button>
           </div>
@@ -175,6 +178,8 @@ export default function Shows() {
       {modalOpen && (
         <ShowFormModal show={modalShow} destinations={destinations} onClose={closeModal} onSaved={onSaved} />
       )}
+
+      {qrShow && <TourQRModal tour={qrShow} detailPath="shows-adventures" onClose={() => setQrShow(null)} />}
     </div>
   );
 }

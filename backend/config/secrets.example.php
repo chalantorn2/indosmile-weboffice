@@ -16,12 +16,20 @@ define('PUBLIC_API_KEYS', serialize([
 // Contract Rate API (Seven Smile)
 define('CONTRACT_RATE_API_KEY', '');
 
-// Stripe
-define('STRIPE_SECRET_KEY', '');
-define('STRIPE_PUBLISHABLE_KEY', '');
-// Signing secret (whsec_...) from the Stripe dashboard webhook endpoint.
+// Stripe — two key sets, one per mode. The active set is chosen at runtime by the
+// `payment_mode` setting (Settings > Payments, super_admin only). See getStripeConfig().
+
+// TEST / sandbox keys
+define('STRIPE_SECRET_KEY_TEST', '');
+define('STRIPE_PUBLISHABLE_KEY_TEST', '');
+// Signing secret (whsec_...) from the Stripe dashboard webhook endpoint (test mode).
 // Without it stripe_webhook.php rejects every event, so no booking can be marked paid.
-define('STRIPE_WEBHOOK_SECRET', '');
+define('STRIPE_WEBHOOK_SECRET_TEST', '');
+
+// LIVE / real-money keys — required before payment_mode can be switched to 'live'.
+define('STRIPE_SECRET_KEY_LIVE', '');
+define('STRIPE_PUBLISHABLE_KEY_LIVE', '');
+define('STRIPE_WEBHOOK_SECRET_LIVE', '');
 
 // ChillPay PayLink
 define('CHILLPAY_MERCHANT_CODE', '');

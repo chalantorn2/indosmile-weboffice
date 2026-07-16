@@ -34,8 +34,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $payload   = file_get_contents('php://input');
 $sigHeader = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
 
-if (!defined('STRIPE_WEBHOOK_SECRET') || STRIPE_WEBHOOK_SECRET === '') {
-    $log('CONFIG ERROR: STRIPE_WEBHOOK_SECRET is not set — event rejected');
+// Stripe test and live are separate endpoints with separate signing secrets. The
+// event's livemode flag says which one signed this payload, so the webhook keeps
+// verifying correctly no matter which mode the office has toggled on. Reading
+// livemode before verification is safe — it only selects the secret; a forged flag
+// still can't produce a valid signature for either secret.
+$peek = json_decode($payload, true);
+$isLive = is_array($peek) && !empty($peek['livemode']);
+$webhookSecret = $isLive
+    ? (defined('STRIPE_WEBHOOK_SECRET_LIVE') ? STRIPE_WEBHOOK_SECRET_LIVE : '')
+    : (defined('STRIPE_WEBHOOK_SECRET_TEST') ? STRIPE_WEBHOOK_SECRET_TEST : '');
+
+if ($webhookSecret === '') {
+    $log('CONFIG ERROR: webhook secret for ' . ($isLive ? 'live' : 'test') . ' mode is not set — event rejected');
     http_response_code(500);
     echo json_encode(['error' => 'Webhook not configured']);
     exit;
@@ -84,7 +95,7 @@ function verifyStripeSignature($payload, $sigHeader, $secret, $tolerance = 300)
     return 'no matching signature';
 }
 
-$verified = verifyStripeSignature($payload, $sigHeader, STRIPE_WEBHOOK_SECRET);
+$verified = verifyStripeSignature($payload, $sigHeader, $webhookSecret);
 if ($verified !== true) {
     $log('SIGNATURE REJECTED: ' . $verified);
     http_response_code(400);
@@ -92,7 +103,7 @@ if ($verified !== true) {
     exit;
 }
 
-$event = json_decode($payload, true);
+$event = $peek;
 $type  = $event['type'] ?? '';
 
 // Anything else (refunds, expiries) is acknowledged so Stripe stops retrying.

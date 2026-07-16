@@ -12,14 +12,21 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { apiGet, apiMutate, formatCurrency, formatDate, isAwaitingPayment } from "./lib/adminApi";
+import {
+  apiGet,
+  apiMutate,
+  formatCurrency,
+  formatDate,
+  isAwaitingPayment,
+} from "./lib/adminApi";
 import { StatusBadges } from "./bookingStatus";
 import BookingDetailModal from "./BookingDetailModal";
 
 const PAGE_SIZE = 20;
 
 // Trim long tour names in the list; the full name stays available on hover (title attr).
-const truncate = (s, n) => (s && s.length > n ? s.slice(0, n).trimEnd() + "…" : s);
+const truncate = (s, n) =>
+  s && s.length > n ? s.slice(0, n).trimEnd() + "…" : s;
 
 const columnHelper = createColumnHelper();
 
@@ -43,7 +50,14 @@ export default function Bookings() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const filters = { page, status, payment, search: debouncedSearch, dateFrom, dateTo };
+  const filters = {
+    page,
+    status,
+    payment,
+    search: debouncedSearch,
+    dateFrom,
+    dateTo,
+  };
 
   const { data, isPending, isError } = useQuery({
     queryKey: ["bookings", filters],
@@ -71,25 +85,23 @@ export default function Bookings() {
   const bookings = data?.items || [];
   const pagination = data?.pagination || null;
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["bookings"] });
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
 
-  const confirmMutation = useMutation({
-    mutationFn: (booking) => apiMutate(`bookings.php?id=${booking.id}&action=confirm`, "PUT", {}),
-    onSuccess: () => {
-      toast.success("Confirmed. Payment link sent.");
-      invalidate();
-    },
-    onError: (err) => toast.error(err.message || "Network error. Please try again."),
+  // Clears the "new" (unread) dot. Fire-and-forget: stamping viewed_at is best-effort
+  // and must never block opening a booking. Refresh the list so the dot disappears.
+  const seenMutation = useMutation({
+    mutationFn: (id) =>
+      apiMutate(`bookings.php?id=${id}&action=mark_seen`, "PUT", {}),
+    onSuccess: invalidate,
   });
 
-  const quickConfirm = (booking) => {
-    if (
-      !window.confirm(
-        `Confirm ${booking.booking_reference}?\n\nThis emails ${booking.customer_email} a Pay Now link for ${formatCurrency(booking.total_price)}.`
-      )
-    )
-      return;
-    confirmMutation.mutate(booking);
+  // Opening a booking is what marks it seen — the admin has now looked at it.
+  // Confirming happens inside the detail modal, so the admin reviews the submitted
+  // details (from the public BookingSidebar) before sending the payment link.
+  const openBooking = (booking) => {
+    if (!booking.viewed_at) seenMutation.mutate(booking.id);
+    setActive(booking);
   };
 
   // Filters (other than search) reset to page 1 immediately.
@@ -108,10 +120,21 @@ export default function Bookings() {
     () => [
       columnHelper.accessor("booking_reference", {
         header: "Reference",
-        cell: (info) => (
-          <span title={info.getValue()} className="font-mono text-sm text-navy block max-w-[110px] truncate">
-            {info.getValue()}
-          </span>
+        cell: ({ row, getValue }) => (
+          <div className="flex items-center gap-2">
+            {!row.original.viewed_at && (
+              <span
+                title="New — not yet opened"
+                className="w-2 h-2 rounded-full bg-red-500 shrink-0"
+              />
+            )}
+            <span
+              title={getValue()}
+              className="font-mono text-sm text-navy truncate max-w-[110px]"
+            >
+              {getValue()}
+            </span>
+          </div>
         ),
       }),
       columnHelper.display({
@@ -119,22 +142,33 @@ export default function Bookings() {
         header: "Customer",
         cell: ({ row }) => (
           <>
-            <div className="font-body text-sm text-gray-700">{row.original.customer_name}</div>
-            <div className="font-body text-xs text-gray-400">{row.original.customer_email}</div>
+            <div className="font-body text-sm text-gray-700">
+              {row.original.customer_name}
+            </div>
+            <div className="font-body text-xs text-gray-400">
+              {row.original.customer_email}
+            </div>
           </>
         ),
       }),
       columnHelper.accessor("tour_name", {
         header: "Tour",
         cell: (info) => (
-          <span title={info.getValue() || "-"} className="block max-w-[200px] truncate">
+          <span
+            title={info.getValue() || "-"}
+            className="block max-w-[200px] truncate"
+          >
             {truncate(info.getValue(), 25) || "-"}
           </span>
         ),
       }),
       columnHelper.accessor("travel_date", {
         header: "Travel Date",
-        cell: (info) => <span className="whitespace-nowrap">{formatDate(info.getValue())}</span>,
+        cell: (info) => (
+          <span className="whitespace-nowrap">
+            {formatDate(info.getValue())}
+          </span>
+        ),
       }),
       columnHelper.accessor("adults", {
         header: () => <span title="Adults">ADT</span>,
@@ -154,7 +188,13 @@ export default function Bookings() {
       columnHelper.accessor("total_price", {
         header: "Total",
         cell: ({ row, getValue }) => (
-          <span className={row.original.payment_status === "paid" ? "font-bold text-green-600" : "text-gray-700"}>
+          <span
+            className={
+              row.original.payment_status === "paid"
+                ? "font-bold text-green-600"
+                : "text-gray-700"
+            }
+          >
             {formatCurrency(getValue())}
           </span>
         ),
@@ -162,7 +202,9 @@ export default function Bookings() {
       columnHelper.display({
         id: "status",
         header: "Status",
-        cell: ({ row }) => <StatusBadges booking={row.original} showPayment={false} />,
+        cell: ({ row }) => (
+          <StatusBadges booking={row.original} showPayment={false} />
+        ),
       }),
       columnHelper.display({
         id: "action",
@@ -172,15 +214,14 @@ export default function Bookings() {
           const b = row.original;
           return b.status === "pending" ? (
             <button
-              onClick={() => quickConfirm(b)}
-              disabled={confirmMutation.isPending}
-              className="px-3 py-1.5 font-body text-sm font-semibold text-white bg-green-600 rounded-lg hover:brightness-95 disabled:opacity-50"
+              onClick={() => openBooking(b)}
+              className="px-3 py-1.5 font-body text-sm font-semibold text-white bg-green-600 rounded-lg hover:brightness-95"
             >
               Confirm
             </button>
           ) : (
             <button
-              onClick={() => setActive(b)}
+              onClick={() => openBooking(b)}
               className="px-3 py-1.5 font-body text-sm font-semibold text-navy border border-gray-200 rounded-lg hover:bg-gray-50"
             >
               {isAwaitingPayment(b) ? "Manage" : "View"}
@@ -192,7 +233,7 @@ export default function Bookings() {
     // quickConfirm/confirmMutation are stable enough for the row buttons; columns
     // don't need to rebuild on every mutation state tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [],
   );
 
   const table = useReactTable({
@@ -217,7 +258,8 @@ export default function Bookings() {
         <h1 className="font-heading text-4xl text-navy">Bookings</h1>
         {pagination && (
           <p className="font-body text-sm text-gray-500 mt-1">
-            {pagination.total_items} booking{pagination.total_items === 1 ? "" : "s"}
+            {pagination.total_items} booking
+            {pagination.total_items === 1 ? "" : "s"}
           </p>
         )}
       </div>
@@ -231,14 +273,22 @@ export default function Bookings() {
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 min-w-[220px] px-3 py-2.5 rounded-lg border border-gray-200 font-body text-sm text-gray-700 focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none"
         />
-        <select value={status} onChange={(e) => onFilterChange(setStatus)(e.target.value)} className={selectClass}>
+        <select
+          value={status}
+          onChange={(e) => onFilterChange(setStatus)(e.target.value)}
+          className={selectClass}
+        >
           <option value="">All statuses</option>
           <option value="pending">Pending</option>
           <option value="confirmed">Confirmed</option>
           <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
         </select>
-        <select value={payment} onChange={(e) => onFilterChange(setPayment)(e.target.value)} className={selectClass}>
+        <select
+          value={payment}
+          onChange={(e) => onFilterChange(setPayment)(e.target.value)}
+          className={selectClass}
+        >
           <option value="">All payments</option>
           <option value="unpaid">Unpaid</option>
           <option value="paid">Paid</option>
@@ -297,7 +347,10 @@ export default function Bookings() {
                         key={header.id}
                         className={`font-body text-sm font-semibold px-4 py-3 ${alignClass(header.column)}`}
                       >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                       </th>
                     ))}
                   </tr>
@@ -305,13 +358,19 @@ export default function Bookings() {
               </thead>
               <tbody>
                 {table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="border-t border-gray-100 hover:bg-yellow/5">
+                  <tr
+                    key={row.id}
+                    className="border-t border-gray-100 hover:bg-yellow/5"
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <td
                         key={cell.id}
                         className={`px-4 py-3 font-body text-sm text-gray-700 ${alignClass(cell.column)}`}
                       >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -324,7 +383,8 @@ export default function Bookings() {
 
       {/* Legend: what the green Total means, now that the paid/unpaid pill is gone. */}
       <p className="font-body text-xs text-gray-400 mt-2">
-        <span className="font-bold text-green-600">Green total</span> = payment received (paid). ADT / CHD / INF = adults / children / infants.
+        <span className="font-bold text-green-600">Green total</span> = payment
+        received (paid). ADT / CHD / INF = adults / children / infants.
       </p>
 
       {/* Pagination */}

@@ -25,10 +25,6 @@ if (getRequestMethod() !== 'POST') {
     sendError('Method not allowed', 405);
 }
 
-if (!defined('STRIPE_SECRET_KEY') || STRIPE_SECRET_KEY === '') {
-    sendError('Payments are not configured. Please contact us directly.', 500);
-}
-
 $input = getJSONInput();
 $reference = isset($input['reference']) ? trim($input['reference']) : '';
 if ($reference === '') {
@@ -42,6 +38,12 @@ try {
     $tourModel = new Tour($db);
 } catch (Exception $e) {
     sendError('Database connection failed', 500);
+}
+
+// Which key set (test/live) is active is decided by the payment_mode setting.
+$stripe = getStripeConfig($db);
+if ($stripe['secret_key'] === '') {
+    sendError('Payments are not configured. Please contact us directly.', 500);
 }
 
 $booking = $bookingModel->getByReference($reference);
@@ -107,7 +109,7 @@ curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_TIMEOUT, 15);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Authorization: Bearer ' . STRIPE_SECRET_KEY,
+    'Authorization: Bearer ' . $stripe['secret_key'],
     'Content-Type: application/x-www-form-urlencoded',
     // Retrying this exact booking reuses the same session instead of creating a second one.
     'Idempotency-Key: checkout_' . $booking['booking_reference'],

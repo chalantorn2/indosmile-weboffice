@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiJson, uploadFile, uploadFiles } from "./lib/adminApi";
+import { THAI_DESTINATIONS } from "./lib/thaiDestinations";
 
 const GALLERY_MAX = 30;
 
@@ -132,7 +133,7 @@ const TABS = [
  * Full create/edit form for island tours. Faithful port of the legacy tour modal
  * (tour-modal.php + app-tours.js) — same tabs, fields, payload and upload flow.
  */
-export default function TourFormModal({ tour, initialData, destinations, onClose, onSaved }) {
+export default function TourFormModal({ tour, initialData, onClose, onSaved }) {
   const isEdit = Boolean(tour);
   // A create can be seeded (e.g. the Contract Rate importer) without becoming an edit.
   const seed = tour ?? initialData ?? null;
@@ -410,7 +411,7 @@ export default function TourFormModal({ tour, initialData, destinations, onClose
                       placeholder="e.g. Krabi, Thailand"
                     />
                     <datalist id="admin-destinations">
-                      {(destinations || []).map((d) => (
+                      {THAI_DESTINATIONS.map((d) => (
                         <option key={d} value={d} />
                       ))}
                     </datalist>

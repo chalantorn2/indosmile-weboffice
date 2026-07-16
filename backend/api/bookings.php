@@ -268,6 +268,14 @@ function handlePutRequest($bookingModel, $tourModel)
             }
         }
 
+        if ($action === 'mark_seen') {
+            // Clears the "new" indicator in the admin list. Idempotent: only the first
+            // call stamps viewed_at, later ones are a no-op but still return the booking.
+            $bookingModel->markSeen($bookingId);
+            $booking = $bookingModel->getById($bookingId);
+            sendResponse($booking, 200, 'Booking marked as seen');
+        }
+
         if ($action === 'cancel') {
             $reason = isset($input['reason']) ? sanitizeInput($input['reason']) : null;
             $result = $bookingModel->cancel($bookingId, $reason);

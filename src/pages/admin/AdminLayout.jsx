@@ -5,15 +5,8 @@ import { Toaster } from "sonner";
 import { queryClient } from "./lib/queryClient";
 
 const API_BASE = "/backend/api";
-const LEGACY_ADMIN = "/backend/admin/index.php";
 
-/**
- * Admin sidebar navigation.
- *
- * Migration is happening module-by-module. Items with `to` are already ported to
- * React and render in-app. Items with `legacy: true` still live in the old vanilla
- * PHP admin and link out to it — flip them to a `to` route as each is migrated.
- */
+/** Admin sidebar navigation — every module is a React route under /admin. */
 const NAV_ITEMS = [
   { key: "overview", label: "Overview", to: "/admin" },
   { key: "bookings", label: "Bookings", to: "/admin/bookings" },
@@ -119,24 +112,11 @@ export default function AdminLayout() {
           </div>
 
           <nav className="mt-8 flex lg:flex-col gap-2 overflow-x-auto">
-            {NAV_ITEMS.map((item) =>
-              item.legacy ? (
-                <a
-                  key={item.key}
-                  href={`${LEGACY_ADMIN}#${item.key}`}
-                  className="shrink-0 px-4 py-3 rounded-xl font-body font-semibold text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200 flex items-center gap-2"
-                >
-                  {item.label}
-                  <span className="text-[10px] uppercase tracking-wide text-gray-500 border border-gray-600 rounded px-1 py-0.5">
-                    old
-                  </span>
-                </a>
-              ) : (
-                <NavLink key={item.key} to={item.to} end className={navClass}>
-                  {item.label}
-                </NavLink>
-              )
-            )}
+            {NAV_ITEMS.map((item) => (
+              <NavLink key={item.key} to={item.to} end className={navClass}>
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
 
           <button

@@ -46,7 +46,9 @@ $unitAmount = in_array($currency, $zeroDecimal, true)
     ? (int) round($amount)
     : (int) round($amount * 100);
 
-if (!defined('STRIPE_SECRET_KEY') || STRIPE_SECRET_KEY === '') {
+// Which key set (test/live) is active is decided by the payment_mode setting.
+$stripe = getStripeConfig();
+if ($stripe['secret_key'] === '') {
     sendError('Stripe is not configured on the server', 500);
 }
 
@@ -70,7 +72,7 @@ curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_TIMEOUT, 15);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Authorization: Bearer ' . STRIPE_SECRET_KEY,
+    'Authorization: Bearer ' . $stripe['secret_key'],
     'Content-Type: application/x-www-form-urlencoded',
 ]);
 

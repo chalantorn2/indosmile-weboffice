@@ -25,6 +25,7 @@ function fmt(dt) {
 }
 
 function MessageModal({ id, onClose, onChanged }) {
+  const queryClient = useQueryClient();
   const [notes, setNotes] = useState("");
   const { data: msg } = useQuery({
     queryKey: ["message", id],
@@ -43,7 +44,10 @@ function MessageModal({ id, onClose, onChanged }) {
 
   const saveNotes = useMutation({
     mutationFn: () => apiMutate(`contact.php?id=${id}`, "PUT", { admin_notes: notes }),
-    onSuccess: () => toast.success("Notes saved"),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["message", id], updated);
+      toast.success("Notes saved");
+    },
     onError: (err) => toast.error("Error saving notes: " + (err.message || "")),
   });
 
@@ -59,15 +63,15 @@ function MessageModal({ id, onClose, onChanged }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-2xl max-h-[92vh] rounded-2xl shadow-xl flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <div>
-            <h2 className="font-body text-xl font-semibold text-navy">{msg ? msg.subject : "Loading..."}</h2>
+          <div className="min-w-0">
+            <h2 className="font-body text-xl font-semibold text-navy break-words">{msg ? msg.subject : "Loading..."}</h2>
             {msg && (
-              <p className="font-body text-sm text-gray-400 mt-0.5">
-                {msg.name} · <a className="text-blue-600 hover:underline" href={`mailto:${msg.email}`}>{msg.email}</a>
+              <p className="font-body text-sm text-gray-400 mt-0.5 break-words">
+                {msg.name} · <a className="text-blue-600 hover:underline break-all" href={`mailto:${msg.email}`}>{msg.email}</a>
               </p>
             )}
           </div>
-          <button onClick={onClose} aria-label="Close" className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all text-2xl leading-none">&times;</button>
+          <button onClick={onClose} aria-label="Close" className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all text-2xl leading-none">&times;</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
@@ -80,7 +84,7 @@ function MessageModal({ id, onClose, onChanged }) {
                 {when && <span className="font-body text-sm text-gray-400">{when.date} {when.time}</span>}
               </div>
               <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 mb-5">
-                <p className="font-body text-base text-gray-700 whitespace-pre-wrap">{msg.message}</p>
+                <p className="font-body text-base text-gray-700 whitespace-pre-wrap break-words">{msg.message}</p>
               </div>
               <label className="block font-body text-sm font-semibold text-navy mb-1.5">Admin Notes</label>
               <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Internal notes (not sent to the sender)" className="w-full px-3 py-2.5 rounded-lg border border-gray-200 font-body text-base text-gray-700 focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none resize-y" />
